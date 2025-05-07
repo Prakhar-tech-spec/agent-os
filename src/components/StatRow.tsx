@@ -9,7 +9,7 @@ interface StatRowProps {
 
 const StatRow = ({ label, value, suffix = "%" }: StatRowProps) => {
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0 bg-gray-50 px-4 rounded-md my-1.5">
+    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
       <span className="text-gray-600">{label}</span>
       <div className="flex items-center gap-2">
         <span className="font-semibold">{value}{suffix}</span>
