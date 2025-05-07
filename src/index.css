@@ -84,17 +84,30 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    overflow-y: auto;
   }
   
-  /* Hide scrollbar for all elements */
-  ::-webkit-scrollbar {
+  /* More comprehensive scrollbar hiding across all browsers */
+  html, body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  html::-webkit-scrollbar, 
+  body::-webkit-scrollbar,
+  div::-webkit-scrollbar,
+  .scroll-area::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
     display: none;
+    background: transparent;
   }
   
-  /* Enable scrolling functionality but hide scrollbar */
+  /* Hide all scrollbars globally */
   * {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 }
 
