@@ -85,6 +85,17 @@
     @apply bg-background text-foreground;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
   }
+  
+  /* Hide scrollbar for all elements */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Enable scrolling functionality but hide scrollbar */
+  * {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
 }
 
 @layer components {
