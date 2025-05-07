@@ -143,4 +143,33 @@
   .hiring-disqualified {
     @apply bg-red-100 text-red-800 department-pill;
   }
+  
+  /* New styles for the updated design */
+  .app-container {
+    @apply min-h-screen bg-gradient-to-b from-[#F8C7B4] to-[#E9D4CF];
+  }
+  
+  .main-content {
+    @apply bg-[#E3E8F1] rounded-3xl shadow-xl overflow-hidden;
+  }
+  
+  .data-card {
+    @apply bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .header-container {
+    @apply bg-white rounded-2xl shadow-sm py-4 px-6 mb-6;
+  }
+  
+  .tab-selected {
+    @apply bg-black text-white rounded-full;
+  }
+  
+  .tab-default {
+    @apply text-gray-700;
+  }
+  
+  .chart-card {
+    @apply bg-white rounded-2xl shadow-sm overflow-hidden;
+  }
 }

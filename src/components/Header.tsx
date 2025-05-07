@@ -8,7 +8,7 @@ interface HeaderProps {
 
 const Header = ({ activeTab }: HeaderProps) => {
   return (
-    <header className="bg-white py-4 px-6 rounded-xl shadow-sm flex items-center justify-between mb-6">
+    <header className="bg-white py-4 px-6 rounded-xl shadow-sm flex items-center justify-between">
       <div className="flex items-center space-x-8">
         <Link to="/" className="flex items-center">
           <svg viewBox="0 0 24 24" width="32" height="32" className="text-[#FD8A56]" fill="currentColor">
@@ -19,22 +19,22 @@ const Header = ({ activeTab }: HeaderProps) => {
         </Link>
         
         <nav className="flex items-center space-x-4">
-          <Link to="/" className={`px-4 py-2 font-medium ${activeTab === "Overview" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/" className={`px-4 py-2 font-medium ${activeTab === "Overview" ? "tab-selected" : "tab-default"}`}>
             Overview
           </Link>
-          <Link to="/employees" className={`px-4 py-2 font-medium ${activeTab === "Employee" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/employees" className={`px-4 py-2 font-medium ${activeTab === "Employee" ? "tab-selected" : "tab-default"}`}>
             Employee
           </Link>
-          <Link to="/schedule" className={`px-4 py-2 font-medium ${activeTab === "Schedule" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/schedule" className={`px-4 py-2 font-medium ${activeTab === "Schedule" ? "tab-selected" : "tab-default"}`}>
             Schedule
           </Link>
-          <Link to="/tasks" className={`px-4 py-2 font-medium ${activeTab === "Task" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/tasks" className={`px-4 py-2 font-medium ${activeTab === "Task" ? "tab-selected" : "tab-default"}`}>
             Task
           </Link>
-          <Link to="/payroll" className={`px-4 py-2 font-medium ${activeTab === "Payroll" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/payroll" className={`px-4 py-2 font-medium ${activeTab === "Payroll" ? "tab-selected" : "tab-default"}`}>
             Payroll
           </Link>
-          <Link to="/hiring" className={`px-4 py-2 font-medium ${activeTab === "Hiring" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/hiring" className={`px-4 py-2 font-medium ${activeTab === "Hiring" ? "tab-selected" : "tab-default"}`}>
             Hiring
           </Link>
         </nav>

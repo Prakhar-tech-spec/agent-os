@@ -12,7 +12,7 @@ interface CardProps {
 
 const Card = ({ title, children, className, showExpandIcon = true, onExpand }: CardProps) => {
   return (
-    <div className={cn("bg-white rounded-xl shadow-sm overflow-hidden", className)}>
+    <div className={cn("data-card", className)}>
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <h3 className="text-lg font-semibold">{title}</h3>
         {showExpandIcon && (
