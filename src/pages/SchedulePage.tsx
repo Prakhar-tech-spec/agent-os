@@ -1,4 +1,3 @@
-
 import Header from "@/components/Header";
 import { meetingsData } from "@/data/mockData";
 import { Calendar, ChevronLeft, ChevronRight, Clock, Plus, Search } from "lucide-react";
@@ -12,7 +11,9 @@ const SchedulePage = () => {
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] px-6 py-4">
+    <div className="relative min-h-screen">
+      <div className="absolute inset-0 bg-[#d2d7e4] opacity-80 z-0" />
+      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
       <Header activeTab="Schedule" />
       
       <div className="mb-8">
@@ -30,8 +31,9 @@ const SchedulePage = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2 bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden">
           <div className="border-b border-gray-100 px-4 py-2">
             <div className="flex space-x-6">
               <button 
@@ -190,7 +192,7 @@ const SchedulePage = () => {
           </div>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <div className="flex justify-between items-center mb-6">
               <div className="relative">
@@ -392,6 +394,8 @@ const SchedulePage = () => {
                     <circle cx="5" cy="12" r="1"></circle>
                   </svg>
                 </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

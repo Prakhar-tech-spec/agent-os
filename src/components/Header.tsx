@@ -1,6 +1,6 @@
-
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 interface HeaderProps {
   activeTab: string;
@@ -8,22 +8,19 @@ interface HeaderProps {
 
 const Header = ({ activeTab }: HeaderProps) => {
   return (
-    <header className="bg-white py-4 px-6 rounded-xl shadow-sm flex items-center justify-between mb-6">
+    <header className="bg-[#eff1f5] py-4 px-6 rounded-3xl shadow-sm flex items-center justify-between mb-6 h-16">
       <div className="flex items-center space-x-8">
         <Link to="/" className="flex items-center">
-          <svg viewBox="0 0 24 24" width="32" height="32" className="text-[#FD8A56]" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-            <path d="M8 12l3 3v-6zm5 0l3 3v-6z"/>
-          </svg>
-          <span className="text-xl font-semibold ml-2">AgentOS</span>
+          <img src={logo} alt="Logo" width={64} height={64} className="object-contain" style={{ display: 'block' }} />
+          <span className="text-xl font-semibold -ml-1">AgentOS</span>
         </Link>
         
         <nav className="flex items-center space-x-4">
           <Link to="/" className={`px-4 py-2 font-medium ${activeTab === "Overview" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
             Overview
           </Link>
-          <Link to="/employees" className={`px-4 py-2 font-medium ${activeTab === "Employee" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
-            Employee
+          <Link to="/employees" className={`px-4 py-2 font-medium ${(activeTab === "Employee" || activeTab === "My Tools") ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+            My Tools
           </Link>
           <Link to="/schedule" className={`px-4 py-2 font-medium ${activeTab === "Schedule" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
             Schedule
@@ -32,10 +29,10 @@ const Header = ({ activeTab }: HeaderProps) => {
             Task
           </Link>
           <Link to="/payroll" className={`px-4 py-2 font-medium ${activeTab === "Payroll" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
-            Payroll
+            AI Assistant
           </Link>
           <Link to="/hiring" className={`px-4 py-2 font-medium ${activeTab === "Hiring" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
-            Hiring
+            Smart Finances
           </Link>
         </nav>
       </div>
@@ -51,7 +48,7 @@ const Header = ({ activeTab }: HeaderProps) => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="rounded-full p-2 bg-gray-100">
+          <button className="rounded-xl p-2 bg-white">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               <circle cx="12" cy="12" r="3"></circle>
@@ -59,8 +56,7 @@ const Header = ({ activeTab }: HeaderProps) => {
           </button>
           
           <div className="relative">
-            <div className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center absolute -top-1 -right-1">1</div>
-            <button className="rounded-full p-2 bg-gray-100">
+            <button className="rounded-xl p-2 bg-white">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
