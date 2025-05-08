@@ -1,3 +1,4 @@
+
 export interface Employee {
   id: string;
   name: string;
@@ -37,15 +38,6 @@ export interface Applicant {
   role: string;
   dateApplied: string;
   hiringStage: "Screening" | "Qualified" | "Disqualified";
-}
-
-export interface Tool {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-  icon: string; // emoji or icon name
-  createdAt: string;
 }
 
 export const employeesData: Employee[] = [
@@ -308,5 +300,3 @@ export const attendanceData = {
     { time: "11:00", day: "Fri", value: 70 },
   ]
 };
-
-export const toolsData: Tool[] = [];

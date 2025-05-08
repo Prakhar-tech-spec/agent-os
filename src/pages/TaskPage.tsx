@@ -1,3 +1,4 @@
+
 import Header from "@/components/Header";
 import { tasksData } from "@/data/mockData";
 import { ChevronDown, Edit, Filter, Plus, Search, Trash } from "lucide-react";
@@ -8,9 +9,7 @@ const TaskPage = () => {
   const statusTabs = ["All", "Assigned", "On Going", "Pending", "Complete"];
 
   return (
-    <div className="relative min-h-screen">
-      <div className="absolute inset-0 bg-[#d2d7e4] opacity-80 z-0" />
-      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
+    <div className="min-h-screen bg-[#f5f7fa] px-6 py-4">
       <Header activeTab="Task" />
       
       <div className="mb-8">
@@ -28,8 +27,7 @@ const TaskPage = () => {
         </div>
       </div>
       
-        <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">
-          <div className="bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden mb-4">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="flex items-center p-4 border-b border-gray-100">
           <div className="flex space-x-2">
             {statusTabs.map((tab) => (
@@ -223,7 +221,7 @@ const TaskPage = () => {
         </table>
       </div>
 
-          <div className="bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden mt-4">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden mt-6">
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-1 text-gray-700">
@@ -364,8 +362,6 @@ const TaskPage = () => {
             ))}
           </tbody>
         </table>
-          </div>
-        </div>
       </div>
     </div>
   );

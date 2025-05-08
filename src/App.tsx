@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +9,6 @@ import NotFound from "./pages/NotFound";
 import TaskPage from "./pages/TaskPage";
 import SchedulePage from "./pages/SchedulePage";
 import HiringPage from "./pages/HiringPage";
-import MyToolsPage from "@/pages/MyToolsPage";
 
 const queryClient = new QueryClient();
 
@@ -20,10 +20,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/employees" element={<MyToolsPage />} />
-          <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/tasks" element={<TaskPage />} />
-          <Route path="/payroll" element={<NotFound />} />
+          <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/hiring" element={<HiringPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
