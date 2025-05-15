@@ -1,372 +1,510 @@
 import Header from "@/components/Header";
-import { tasksData } from "@/data/mockData";
 import { ChevronDown, Edit, Filter, Plus, Search, Trash } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { employeesData, tasksData } from "@/data/mockData";
+import { createClient } from '@supabase/supabase-js';
+import PenLogo from "@/assets/pen-logo.svg";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { format } from "date-fns";
+
+const supabaseUrl = 'https://nfmfejumgxlhftnohefy.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWZlanVtZ3hsaGZ0bm9oZWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NDM1MDEsImV4cCI6MjA2MjMxOTUwMX0.O3Hm1EBTjnUArZmI_Lu12G7wbwHY8EFDsY_O9SBSrUo';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const TaskPage = () => {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const statusTabs = ["All", "Assigned", "On Going", "Pending", "Complete"];
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    assignees: "",
+    project: "",
+    dueDate: "",
+    priority: "",
+    tags: "",
+    status: "Assigned",
+    completed: false
+  });
+  const [tasks, setTasks] = useState([]);
+  const [editId, setEditId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [formErrors, setFormErrors] = useState({
+    name: '',
+    project: '',
+    dueDate: '',
+    priority: '',
+    status: ''
+  });
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
+  };
+
+  const handleSelect = (name: string, value: string) => {
+    setForm(f => ({ ...f, [name]: value }));
+  };
+
+  const projectOptions = Array.from(new Set(tasksData.map(t => t.project.name)));
+
+  // Fetch tasks from Supabase
+  const fetchTasks = async () => {
+    const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+    if (!error) setTasks(data || []);
+  };
+
+  useEffect(() => {
+    fetchTasks();
+    // Real-time subscription
+    const channel = supabase.channel('public:tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        fetchTasks();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Edit handler: open modal with task data
+  const handleEdit = (task) => {
+    setForm({
+      name: task.name || '',
+      assignees: task.assignees || '',
+      project: task.project || '',
+      dueDate: task.due_date || '',
+      priority: task.priority || '',
+      tags: task.tags || '',
+      status: task.status || 'Assigned',
+      completed: !!task.completed
+    });
+    setEditId(task.id);
+    setShowModal(true);
+  };
+
+  // Delete handler
+  const handleDelete = async (id) => {
+    setConfirmDeleteId(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (confirmDeleteId) {
+      await supabase.from('tasks').delete().eq('id', confirmDeleteId);
+      fetchTasks();
+      setConfirmDeleteId(null);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setConfirmDeleteId(null);
+    setShowDeleteModal(false);
+  };
+
+  // Update handleSubmit to handle both add and edit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Validation: required fields
+    const errors = {
+      name: form.name.trim() ? '' : 'Task name is required.',
+      project: form.project.trim() ? '' : 'Project is required.',
+      dueDate: form.dueDate.trim() ? '' : 'Due date is required.',
+      priority: form.priority.trim() ? '' : 'Priority is required.',
+      status: form.status.trim() ? '' : 'Status is required.'
+    };
+    setFormErrors(errors);
+    if (Object.values(errors).some(Boolean)) {
+      return;
+    }
+    // If status is Complete, completed should be true
+    const completedValue = form.status === 'Complete';
+    if (editId) {
+      // Update
+      const { error } = await supabase.from('tasks').update({
+        name: form.name,
+        assignees: form.assignees,
+        project: form.project,
+        due_date: form.dueDate,
+        priority: form.priority,
+        tags: form.tags,
+        status: form.status,
+        completed: completedValue
+      }).eq('id', editId);
+      if (error) {
+        alert('Failed to update task: ' + error.message);
+      }
+    } else {
+      // Add
+      const { error } = await supabase.from('tasks').insert([
+        {
+          name: form.name,
+          assignees: form.assignees,
+          project: form.project,
+          due_date: form.dueDate,
+          priority: form.priority,
+          tags: form.tags,
+          status: form.status || 'Assigned',
+          completed: completedValue
+        }
+      ]);
+      if (error) {
+        alert('Failed to add task: ' + error.message);
+      }
+    }
+    setForm({ name: '', assignees: '', project: '', dueDate: '', priority: '', tags: '', status: 'Assigned', completed: false });
+    setFormErrors({ name: '', project: '', dueDate: '', priority: '', status: '' });
+    setShowModal(false);
+    setEditId(null);
+    fetchTasks();
+  };
+
+  // Add completed checkbox handler
+  const handleCompletedChange = async (task) => {
+    const newCompleted = !task.completed;
+    const newStatus = newCompleted ? 'Complete' : 'Assigned';
+    await supabase.from('tasks').update({ completed: newCompleted, status: newStatus }).eq('id', task.id);
+    fetchTasks();
+  };
 
   return (
     <div className="relative min-h-screen">
-      <div className="absolute inset-0 bg-[#d2d7e4] opacity-80 z-0" />
       <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
-      <Header activeTab="Task" />
-      
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Project Task Summary</h1>
-            <p className="text-gray-500">
-              4 tasks assigned, 4 in progress, with clear priorities and deadlines.
-            </p>
+        <Header activeTab="Task" />
+        
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Project Task Summary</h1>
+              <p className="text-gray-500">
+                4 tasks assigned, 4 in progress, with clear priorities and deadlines.
+              </p>
+            </div>
+            <Dialog open={showModal} onOpenChange={setShowModal}>
+              <DialogTrigger asChild>
+            <button
+              className="flex items-center text-white px-3 py-1.5 rounded-2xl space-x-2 shadow-lg"
+              style={{ background: 'linear-gradient(180deg, #4F8CFF 0%, #2563EB 100%)' }}
+            >
+              <Plus size={16} />
+              <span>New Task</span>
+            </button>
+              </DialogTrigger>
+              <DialogContent className="bg-[#eee8e6] rounded-[2rem] shadow-2xl w-full max-w-lg px-8 py-6 mx-auto border-none">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">New Task</DialogTitle>
+                </DialogHeader>
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  <div>
+                    <label className="block text-left text-sm font-medium mb-1">Task Name</label>
+                    <Input name="name" value={form.name} onChange={handleInput} placeholder="Task name" className="bg-white" />
+                    {formErrors.name && <div className="text-red-600 text-xs mt-1">{formErrors.name}</div>}
+                  </div>
+                  <div>
+                    <label className="block text-left text-sm font-medium mb-1">Assignees</label>
+                    <Input name="assignees" value={form.assignees} onChange={handleInput} placeholder="Assignees (comma separated)" className="bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-left text-sm font-medium mb-1">Project</label>
+                    <Input name="project" value={form.project} onChange={handleInput} placeholder="Project name" className="bg-white" />
+                    {formErrors.project && <div className="text-red-600 text-xs mt-1">{formErrors.project}</div>}
+                  </div>
+                  <div>
+                    <label className="block text-left text-sm font-medium mb-1">Due Date</label>
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Input
+                          readOnly
+                          value={form.dueDate ? format(new Date(form.dueDate), 'yyyy-MM-dd') : ''}
+                          placeholder="Select date"
+                          className="bg-white cursor-pointer"
+                          onClick={() => setDatePickerOpen(true)}
+                        />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={form.dueDate ? new Date(form.dueDate) : undefined}
+                          onSelect={date => {
+                            setForm(f => ({ ...f, dueDate: date ? date.toISOString() : '' }));
+                            setDatePickerOpen(false);
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {formErrors.dueDate && <div className="text-red-600 text-xs mt-1">{formErrors.dueDate}</div>}
+                  </div>
+                  <div>
+                    <label className="block text-left text-sm font-medium mb-1">Priority</label>
+                    <Select value={form.priority} onValueChange={value => setForm(f => ({ ...f, priority: value }))}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="Low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {formErrors.priority && <div className="text-red-600 text-xs mt-1">{formErrors.priority}</div>}
+                  </div>
+                  <div>
+                    <label className="block text-left text-sm font-medium mb-1">Status</label>
+                    <Select value={form.status} onValueChange={value => setForm(f => ({ ...f, status: value }))}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Assigned">Assigned</SelectItem>
+                        <SelectItem value="On Going">On Going</SelectItem>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Complete">Complete</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {formErrors.status && <div className="text-red-600 text-xs mt-1">{formErrors.status}</div>}
+                  </div>
+                  <div>
+                    <label className="block text-left text-sm font-medium mb-1">Tags <span className="text-gray-400">(comma separated, optional)</span></label>
+                    <Input name="tags" value={form.tags} onChange={handleInput} placeholder="e.g. UI/UX, Branding" className="bg-white" />
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+                    <Button type="submit">Add Task</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-          <button className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg space-x-2">
-            <Plus size={18} />
-            <span>New Task</span>
-          </button>
         </div>
-      </div>
-      
+        
         <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">
+          <div className="flex justify-between items-center mb-4">
+            <div className="bg-[#fafafa] flex items-center space-x-2 px-3 py-1 max-w-max" style={{ borderRadius: '9999px', boxShadow: '0 2px 8px 0 rgba(180,180,200,0.08)' }}>
+              {statusTabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedStatus(tab)}
+                  className={`px-4 py-1 rounded-full text-sm font-medium ${selectedStatus === tab ? "bg-black text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                >
+                  {tab}
+                </button>
+              ))}
+              <button className="px-4 py-1 rounded-full text-gray-600 hover:bg-gray-100 flex items-center justify-center">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white">
+                  <Plus size={16} />
+                </span>
+              </button>
+            </div>
+            <div className="flex items-center ml-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-64 rounded-full bg-white pl-10 pr-4 py-2 text-sm border border-gray-200"
+                />
+              </div>
+            </div>
+          </div>
           <div className="bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden mb-4">
-        <div className="flex items-center p-4 border-b border-gray-100">
-          <div className="flex space-x-2">
-            {statusTabs.map((tab) => (
-              <button 
-                key={tab} 
-                onClick={() => setSelectedStatus(tab)}
-                className={`px-4 py-2 rounded-full text-sm font-medium ${
-                  selectedStatus === tab ? "bg-black text-white" : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-            <button className="px-4 py-2 rounded-full text-gray-600 hover:bg-gray-100">
-              <Plus size={18} />
-            </button>
-          </div>
-          
-          <div className="ml-auto flex items-center space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search" 
-                className="w-64 rounded-lg bg-gray-50 pl-10 pr-4 py-2 text-sm border border-gray-200" 
-              />
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1 text-gray-700">
+                  <ChevronDown size={18} />
+                  <span className="font-medium">Tasks</span>
+                </div>
+                
+                <div className="flex items-center space-x-4 text-gray-600">
+                  <button className="flex items-center space-x-1">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span className="text-sm">Manage</span>
+                  </button>
+                  <button className="flex items-center space-x-1">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span className="text-sm">Export</span>
+                  </button>
+                  <button>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="1"></circle>
+                      <circle cx="19" cy="12" r="1"></circle>
+                      <circle cx="5" cy="12" r="1"></circle>
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
             
-            <button className="p-2 rounded-full bg-gray-100">
-              <Filter size={18} />
-            </button>
-            
-            <button className="p-2 rounded-full bg-gray-100">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="4" y1="9" x2="20" y2="9"></line>
-                <line x1="4" y1="15" x2="20" y2="15"></line>
-                <line x1="10" y1="3" x2="8" y2="21"></line>
-                <line x1="16" y1="3" x2="14" y2="21"></line>
-              </svg>
-            </button>
-            
-            <button className="p-2 rounded-full bg-gray-100">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="19" cy="12" r="1"></circle>
-                <circle cx="5" cy="12" r="1"></circle>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 text-gray-700">
-              <ChevronDown size={18} />
-              <span className="font-medium">Assigned</span>
-              <span className="ml-2 bg-gray-200 text-gray-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span>
-            </div>
-            
-            <div className="flex items-center space-x-4 text-gray-600">
-              <button className="flex items-center space-x-1">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                <span className="text-sm">Manage</span>
-              </button>
-              <button className="flex items-center space-x-1">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span className="text-sm">Export</span>
-              </button>
-              <button>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="1"></circle>
-                  <circle cx="19" cy="12" r="1"></circle>
-                  <circle cx="5" cy="12" r="1"></circle>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  <input type="checkbox" className="rounded mr-3" />
-                  Task name
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Assignee
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Project
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Due Date
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Priority
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Tag
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasksData.slice(0, 4).map((task, index) => (
-              <tr key={task.id} className={index !== 3 ? "border-b border-gray-100" : ""}>
-                <td className="px-4 py-4">
-                  <div className="flex items-center">
-                    <input type="checkbox" className="rounded mr-3" />
-                    {task.name}
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex -space-x-2">
-                    {task.assignees.map((assignee, i) => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden">
-                        <img 
-                          src={`/lovable-uploads/${i === 0 ? '4c1fb7e8-6547-44c3-8c1a-d3768f956fe2' : '9d9ee4d4-81d4-4445-b4c8-19186cc9384d'}.png`} 
-                          alt={`Assignee ${i}`} 
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center mr-2">
-                      {task.project.icon}
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                    <div className="flex items-center">
+                      <input type="checkbox" className="rounded mr-3" />
+                      Task name
+                      <ChevronDown size={14} className="ml-1" />
                     </div>
-                    {task.project.name}
-                  </div>
-                </td>
-                <td className="px-4 py-4">{task.dueDate}</td>
-                <td className="px-4 py-4">
-                  <span className={`priority-${task.priority.toLowerCase()}`}>
-                    {task.priority}
-                  </span>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex space-x-2">
-                    {task.tags.map((tag, i) => (
-                      <span key={i} className="tag-pill">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex items-center justify-center space-x-3">
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <Edit size={16} />
-                    </button>
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <Trash size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-          <div className="bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden mt-4">
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 text-gray-700">
-              <ChevronDown size={18} />
-              <span className="font-medium">On Going</span>
-              <span className="ml-2 bg-gray-200 text-gray-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span>
-            </div>
-            
-            <div className="flex items-center space-x-4 text-gray-600">
-              <button className="flex items-center space-x-1">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                <span className="text-sm">Manage</span>
-              </button>
-              <button className="flex items-center space-x-1">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span className="text-sm">Export</span>
-              </button>
-              <button>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="1"></circle>
-                  <circle cx="19" cy="12" r="1"></circle>
-                  <circle cx="5" cy="12" r="1"></circle>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  <input type="checkbox" className="rounded mr-3" />
-                  Task name
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Assignee
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Project
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Due Date
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Priority
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                <div className="flex items-center">
-                  Tag
-                  <ChevronDown size={14} className="ml-1" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasksData.slice(4).map((task, index) => (
-              <tr key={task.id} className={index !== tasksData.slice(4).length - 1 ? "border-b border-gray-100" : ""}>
-                <td className="px-4 py-4">
-                  <div className="flex items-center">
-                    <input type="checkbox" className="rounded mr-3" />
-                    {task.name}
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex -space-x-2">
-                    {task.assignees.map((assignee, i) => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden">
-                        <img 
-                          src={`/lovable-uploads/${i === 0 ? 'fe4eec11-1aac-4a28-8f29-66c05334827d' : '9042c7e0-c2c9-4776-9920-b9ef775dec35'}.png`} 
-                          alt={`Assignee ${i}`} 
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center mr-2">
-                      {task.project.icon}
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                    <div className="flex items-center">
+                      Assignee
+                      <ChevronDown size={14} className="ml-1" />
                     </div>
-                    {task.project.name}
-                  </div>
-                </td>
-                <td className="px-4 py-4">{task.dueDate}</td>
-                <td className="px-4 py-4">
-                  <span className={`priority-${task.priority.toLowerCase()}`}>
-                    {task.priority}
-                  </span>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex space-x-2">
-                    {task.tags.map((tag, i) => (
-                      <span key={i} className="tag-pill">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex items-center justify-center space-x-3">
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <Edit size={16} />
-                    </button>
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <Trash size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                    <div className="flex items-center">
+                      Project
+                      <ChevronDown size={14} className="ml-1" />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                    <div className="flex items-center">
+                      Due Date
+                      <ChevronDown size={14} className="ml-1" />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                    <div className="flex items-center">
+                      Priority
+                      <ChevronDown size={14} className="ml-1" />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                    <div className="flex items-center">
+                      Tag
+                      <ChevronDown size={14} className="ml-1" />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">Completed</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">Status</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-600">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tasks
+                  .filter(t => {
+                    // Status filter
+                    if (selectedStatus !== 'All') {
+                      if (!t.status || t.status.toLowerCase() !== selectedStatus.toLowerCase()) {
+                        return false;
+                      }
+                    }
+                    // Search filter: match any field
+                    const q = search.trim().toLowerCase();
+                    if (!q) return true;
+                    const fields = [t.name, t.assignees, t.project, t.due_date, t.priority, t.tags].map(f => (f || '').toLowerCase());
+                    return fields.some(f => f.includes(q));
+                  })
+                  .map((task) => (
+                    <tr key={task.id}>
+                      <td className="px-4 py-3">{task.name || '-'}</td>
+                      <td className="px-4 py-3">{task.assignees || '-'}</td>
+                      <td className="px-4 py-3">{task.project || '-'}</td>
+                      <td className="px-4 py-3">{task.due_date || '-'}</td>
+                      <td className="px-4 py-3">{task.priority || '-'}</td>
+                      <td className="px-4 py-3">{task.tags || '-'}</td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleCompletedChange(task)}
+                          className={`relative w-10 h-6 rounded-full focus:outline-none ${task.completed ? 'bg-green-500' : 'bg-gray-300'}`}
+                          title="Mark as completed"
+                          style={{
+                            border: 'none',
+                            transition: 'background-color 0.35s cubic-bezier(0.4,0,0.2,1)',
+                            WebkitTapHighlightColor: 'transparent'
+                          }}
+                        >
+                          <span
+                            className={`absolute left-1 top-1 w-4 h-4 rounded-full bg-white shadow-md flex items-center justify-center`}
+                            style={{
+                              transform: task.completed ? 'translateX(16px)' : 'translateX(0)',
+                              transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+                              willChange: 'transform'
+                            }}
+                          >
+                            <span
+                              style={{
+                                opacity: task.completed ? 1 : 0,
+                                transition: 'opacity 0.25s cubic-bezier(0.4,0,0.2,1) 0.1s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '100%',
+                                width: '100%'
+                              }}
+                            >
+                              {task.completed && (
+                                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M5 10.5L9 14.5L15 7.5" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                              )}
+                            </span>
+                          </span>
+                  </button>
+                      </td>
+                      <td className="px-4 py-3 text-center">{task.status || '-'}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 bg-white hover:bg-blue-50 transition" title="Edit" onClick={() => handleEdit(task)}>
+                            <img src={PenLogo} alt="Edit" className="w-5 h-5" />
+                  </button>
+                          <button className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-200 bg-white hover:bg-red-50 transition text-red-600" title="Delete" onClick={() => handleDelete(task.id)}>
+                            <Trash size={18} />
+                  </button>
+                </div>
+                      </td>
+                </tr>
+                  ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+      {/* Confirmation Modal for Delete */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-md px-8 py-6 mx-auto border-none">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Delete Task</DialogTitle>
+          </DialogHeader>
+          <p className="text-base text-gray-700 mb-4">Are you sure you want to delete this task?</p>
+          <div className="flex justify-end gap-4">
+            <button
+              type="button"
+              className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-gray-800 transition border-none"
+              onClick={cancelDelete}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="w-full bg-red-600 text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-red-700 transition border-none"
+              onClick={confirmDelete}
+            >
+              Delete
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

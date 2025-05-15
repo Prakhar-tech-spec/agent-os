@@ -16,22 +16,22 @@ const Header = ({ activeTab }: HeaderProps) => {
         </Link>
         
         <nav className="flex items-center space-x-4">
-          <Link to="/" className={`px-4 py-2 font-medium ${activeTab === "Overview" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/" className={`px-4 py-2 text-base font-medium ${activeTab === "Overview" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
             Overview
           </Link>
-          <Link to="/employees" className={`px-4 py-2 font-medium ${(activeTab === "Employee" || activeTab === "My Tools") ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/employees" className={`px-4 py-2 text-base font-medium ${(activeTab === "Employee" || activeTab === "My Tools") ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
             My Tools
           </Link>
-          <Link to="/schedule" className={`px-4 py-2 font-medium ${activeTab === "Schedule" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/schedule" className={`px-4 py-2 text-base font-medium ${activeTab === "Schedule" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
             Schedule
           </Link>
-          <Link to="/tasks" className={`px-4 py-2 font-medium ${activeTab === "Task" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/tasks" className={`px-4 py-2 text-base font-medium ${activeTab === "Task" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
             Task
           </Link>
-          <Link to="/payroll" className={`px-4 py-2 font-medium ${activeTab === "Payroll" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
-            AI Assistant
+          <Link to="/ai-assistant" className={`px-4 py-2 text-base font-medium ${activeTab === "AI Assistant" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+            Luma AI
           </Link>
-          <Link to="/hiring" className={`px-4 py-2 font-medium ${activeTab === "Hiring" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
+          <Link to="/smart-finances" className={`px-4 py-2 text-base font-medium ${activeTab === "Smart Finances" ? "bg-black text-white rounded-full" : "text-gray-700"}`}>
             Smart Finances
           </Link>
         </nav>

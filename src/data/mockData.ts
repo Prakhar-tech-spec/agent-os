@@ -42,10 +42,13 @@ export interface Applicant {
 export interface Tool {
   id: string;
   name: string;
-  description: string;
-  tags: string[];
-  icon: string; // emoji or icon name
-  createdAt: string;
+  url?: string;
+  description?: string;
+  tags?: string[];
+  pinned?: boolean;
+  icon: string; // emoji or icon name or URL
+  createdAt?: string;
+  created_at?: string; // for Supabase compatibility
 }
 
 export const employeesData: Employee[] = [

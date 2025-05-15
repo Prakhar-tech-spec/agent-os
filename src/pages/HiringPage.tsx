@@ -10,8 +10,7 @@ const HiringPage = () => {
   
   return (
     <div className="relative min-h-screen">
-      <div className="absolute inset-0 bg-[#d2d7e4] opacity-80 z-0" />
-      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
+      <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">
         <Header activeTab="Hiring" />
         <div className="mb-8"></div>
         <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">

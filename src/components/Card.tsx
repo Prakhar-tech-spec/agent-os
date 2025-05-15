@@ -30,7 +30,7 @@ const Card = ({ title, children, className, showExpandIcon = true, onExpand, tit
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 14L14 6" stroke="#6C6F7F" strokeWidth="2" strokeLinecap="round"/>
                 <path d="M7 6H14V13" stroke="#6C6F7F" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+            </svg>
             </span>
           </button>
         )}
