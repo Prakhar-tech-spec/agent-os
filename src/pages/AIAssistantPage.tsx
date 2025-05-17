@@ -100,29 +100,29 @@ const AIAssistantPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
+    <div className="relative min-h-screen bg-neutral-100">
+      <div className="relative z-10 min-h-screen px-6 py-4">
         <Header activeTab="AI Assistant" />
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-left">
+          <h1 className="text-3xl font-extrabold mb-2 text-left text-neutral-900">
             AI Assistant
-            <span className="text-base font-normal text-gray-500 ml-2 align-middle">(8k Chats/Month)</span>
-            <span className="text-xs font-normal text-gray-400 ml-2 align-middle italic">*Powered by Gemini 2.0 flash</span>
+            <span className="text-base font-normal text-neutral-500 ml-2 align-middle">(8k Chats/Month)</span>
+            <span className="text-xs font-normal text-neutral-400 ml-2 align-middle italic">*Powered by Gemini 2.0 flash</span>
           </h1>
-          <p className="text-gray-500 text-left">Generate property descriptions, emails, ads, posts, summarize notes, get tool recommendations, or ask real estate questions.</p>
+          <p className="text-neutral-500 text-left">Generate property descriptions, emails, ads, posts, summarize notes, get tool recommendations, or ask real estate questions.</p>
           <p className="text-xs text-yellow-600 font-semibold mt-1">Chats are not saved here. Refreshing or switching tabs will clear your chat, so copy anything important.</p>
         </div>
-        <div className="w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4 overflow-hidden">
+        <div className="w-full mx-auto bg-white rounded-3xl p-6">
           <div className="flex flex-col md:flex-row gap-8 items-start w-full h-full overflow-hidden">
             {/* Sidebar with quick prompts */}
             <div className="md:w-1/3 w-full flex-shrink-0 h-[60vh]">
-              <Card className="p-4 bg-white rounded-2xl shadow-md h-full flex flex-col justify-between">
-                <div className="font-semibold text-gray-700 mb-2">Quick Prompts</div>
+              <Card className="p-4 bg-white rounded-2xl border border-neutral-200">
+                <div className="font-semibold text-neutral-700 mb-2">Quick Prompts</div>
                 <div className="flex flex-col gap-3">
                   {quickPrompts.filter(p => p.label !== 'Tool Recommendation').map((p) => (
                     <button
                       key={p.label}
-                      className="text-left px-3 py-2 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-700 transition"
+                      className="text-left px-3 py-2 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition"
                       onClick={() => {
                         setSelectedPrompt(p.label);
                         setInput(p.value);
@@ -145,7 +145,7 @@ const AIAssistantPage = () => {
                   {quickPrompts.filter(p => p.label === 'Tool Recommendation').map((p) => (
                     <button
                       key={p.label}
-                      className="flex-1 px-3 py-2 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-700 transition text-left"
+                      className="flex-1 px-3 py-2 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition text-left"
                       onClick={() => {
                         setSelectedPrompt(p.label);
                         setInput(p.value);
@@ -162,7 +162,7 @@ const AIAssistantPage = () => {
               </Card>
             </div>
             {/* Chat area */}
-            <div className="flex-1 flex flex-col h-[60vh] w-full bg-white rounded-2xl shadow-md p-4 overflow-auto">
+            <div className="flex-1 flex flex-col h-[60vh] w-full bg-white rounded-2xl border border-neutral-200 p-4 overflow-auto">
               <div className="flex-1 overflow-y-auto pr-2 mb-4 w-full">
                 {messages.map((msg, i) => {
                   // Special style for the very first assistant welcome message

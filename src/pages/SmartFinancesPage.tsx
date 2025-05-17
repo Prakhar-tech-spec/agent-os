@@ -46,12 +46,14 @@ export default function SmartFinancesPage() {
   const [goalsLoading, setGoalsLoading] = useState(true);
   const userIdRef = useRef<string | null>(null);
   const [user, setUser] = useState(null);
+  const [showResetGoalsModal, setShowResetGoalsModal] = useState(false);
 
   // Stable fetchData for real-time
   const fetchData = async () => {
     const { data, error } = await supabase
       .from('finances')
       .select('*')
+      .eq('user_id', user?.id)
       .order('created_at', { ascending: false });
     if (error) {
       console.error('Error fetching finances:', error);
@@ -82,8 +84,9 @@ export default function SmartFinancesPage() {
     setRemindersState(data.filter((item) => item.type === 'reminder').map(mapReminder));
   };
 
-  // Fetch finances from Supabase in real time
+  // Fetch finances from Supabase in real time, only when user is loaded
   useEffect(() => {
+    if (!user?.id) return;
     fetchData();
     // Real-time subscription using channel
     const channel = supabase.channel('public:finances')
@@ -94,7 +97,7 @@ export default function SmartFinancesPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   // Fetch user and goals on mount
   useEffect(() => {
@@ -144,14 +147,26 @@ export default function SmartFinancesPage() {
 
   const addExpense = async () => {
     if (!expenseInput.category || !expenseInput.amount || !expenseInput.date) return;
-    const { error } = await supabase.from('finances').insert([{
+    const { data, error } = await supabase.from('finances').insert([{
       type: 'expense',
       category: expenseInput.category,
       amount: Number(expenseInput.amount),
       tag: expenseTag,
-      expense_date: expenseInput.date
-    }]);
-    if (!error) {
+      expense_date: expenseInput.date,
+      user_id: user?.id,
+    }]).select().single();
+    if (!error && data) {
+      // Optimistically add the new expense to the state for instant UI update
+      setExpenseList(prev => [
+        {
+          id: data.id,
+          category: data.category,
+          amount: data.amount,
+          tag: data.tag,
+          date: data.expense_date
+        },
+        ...prev
+      ]);
       setExpenseInput({ category: "", amount: "", date: todayStr });
       setExpenseTag("");
       closeExpenseModal();
@@ -167,15 +182,27 @@ export default function SmartFinancesPage() {
   // Add Closing
   const addClosing = async () => {
     if (!newClosing.client || !newClosing.address || !newClosing.date || !newClosing.commission) return;
-    const { error } = await supabase.from('finances').insert([{
-      type: 'closing',
-      client: newClosing.client,
-      address: newClosing.address,
-      closing_date: newClosing.date,
-      commission: Number(newClosing.commission),
-      status: newClosing.status
-    }]);
-    if (!error) {
+    const { data, error } = await supabase.from('finances').insert([
+      {
+        type: 'closing',
+        client: newClosing.client,
+        address: newClosing.address,
+        closing_date: newClosing.date,
+        commission: Number(newClosing.commission),
+        status: newClosing.status,
+        user_id: user?.id,
+      }
+    ]).select().single();
+    if (!error && data) {
+      // Optimistically add the new closing to the state for instant UI update
+      setClosingsState(prev => [{
+        id: data.id,
+        client: data.client,
+        address: data.address,
+        date: data.closing_date,
+        commission: data.commission,
+        status: data.status
+      }, ...prev]);
       setNewClosing({ client: "", address: "", date: todayStr, commission: "", status: "Upcoming" });
       closeClosingModal();
     }
@@ -190,29 +217,36 @@ export default function SmartFinancesPage() {
       return;
     }
     setGoalsLoading(true);
-    const upsertPayload = {
-      id: goalsId ?? undefined,
+    const upsertPayload: any = {
       user_id: userId,
       monthly: Number(newGoal.monthly),
       quarterly: Number(newGoal.quarterly),
       yearly: Number(newGoal.yearly),
     };
-    console.log('saveGoals: userId', userId, 'payload', upsertPayload);
+    if (goalsId) {
+      upsertPayload.id = goalsId;
+    }
     const { data, error } = await supabase
       .from('goals')
       .upsert([
         upsertPayload
       ], { onConflict: 'user_id' })
-      .select()
-      .single();
+      .select();
+    const updatedGoal = Array.isArray(data) ? data[0] : data;
     if (error) {
       console.error('Supabase upsert error:', error);
     }
-    if (!error && data) {
-      setGoals({ monthly: data.monthly, quarterly: data.quarterly, yearly: data.yearly });
-      setGoalsId(data.id);
+    if (!error && updatedGoal) {
+      setGoals({ monthly: updatedGoal.monthly, quarterly: updatedGoal.quarterly, yearly: updatedGoal.yearly });
+      setGoalsId(updatedGoal.id);
       setNewGoal({ monthly: "", quarterly: "", yearly: "" });
       setShowGoalModal(false);
+      // Fetch the latest goals from Supabase to ensure UI is up to date
+      const { data: freshGoals, error: fetchError } = await supabase.from('goals').select('*').eq('user_id', userId).single();
+      if (!fetchError && freshGoals) {
+        setGoals({ monthly: freshGoals.monthly, quarterly: freshGoals.quarterly, yearly: freshGoals.yearly });
+        setGoalsId(freshGoals.id);
+      }
     }
     setGoalsLoading(false);
   };
@@ -220,12 +254,22 @@ export default function SmartFinancesPage() {
   // Add Reminder
   const addReminder = async () => {
     if (!newReminder.label || !newReminder.due) return;
-    const { error } = await supabase.from('finances').insert([{
+    const { data, error } = await supabase.from('finances').insert([{
       type: 'reminder',
       label: newReminder.label,
-      due: newReminder.due
-    }]);
-    if (!error) {
+      due: newReminder.due,
+      user_id: user?.id,
+    }]).select().single();
+    if (!error && data) {
+      // Optimistically add the new reminder to the state for instant UI update
+      setRemindersState(prev => [
+        {
+          id: data.id,
+          label: data.label,
+          due: data.due
+        },
+        ...prev
+      ]);
       setNewReminder({ label: "", due: todayStr });
       closeReminderModal();
     }
@@ -285,6 +329,14 @@ export default function SmartFinancesPage() {
   // Delete handlers
   const confirmDelete = async () => {
     if (!pendingDelete) return;
+    // Optimistically remove from state for instant UI update
+    if (pendingDelete.type === 'closing') {
+      setClosingsState(prev => prev.filter(c => c.id !== pendingDelete.id));
+    } else if (pendingDelete.type === 'expense') {
+      setExpenseList(prev => prev.filter(e => e.id !== pendingDelete.id));
+    } else if (pendingDelete.type === 'reminder') {
+      setRemindersState(prev => prev.filter(r => r.id !== pendingDelete.id));
+    }
     await supabase.from('finances').delete().eq('id', pendingDelete.id);
     setDeleteModalOpen(false);
     setPendingDelete(null);
@@ -295,44 +347,45 @@ export default function SmartFinancesPage() {
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
+    <div className="relative min-h-screen bg-neutral-100">
+      <div className="relative z-10 min-h-screen px-6 py-4">
         <Header activeTab="Smart Finances" />
-        <div className="w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4 overflow-hidden">
+        <div className="w-full mx-auto bg-white rounded-3xl p-6">
           <main>
             {/* Financial Snapshot Widget */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <Card className="p-6 flex flex-col items-center justify-center text-center shadow-md">
-                <div className="text-lg font-semibold text-gray-700 mb-1">Pending Income</div>
-                <div className="text-2xl font-bold text-blue-600 mb-1">${pendingIncome.toLocaleString()}</div>
-                <div className="text-xs text-gray-400">From upcoming/active closings</div>
+              <Card className="p-6 flex flex-col items-center justify-center text-center border border-neutral-200">
+                <div className="text-lg font-semibold text-neutral-700 mb-1">Pending Income</div>
+                <div className="text-2xl font-bold text-neutral-900 mb-1">${pendingIncome.toLocaleString()}</div>
+                <div className="text-xs text-neutral-400">From upcoming/active closings</div>
               </Card>
-              <Card className="p-6 flex flex-col items-center justify-center text-center shadow-md">
-                <div className="text-lg font-semibold text-gray-700 mb-1">Closed Income (This Month)</div>
-                <div className="text-2xl font-bold text-green-600 mb-1">${closedIncome.toLocaleString()}</div>
-                <div className="text-xs text-gray-400">Already received</div>
+              <Card className="p-6 flex flex-col items-center justify-center text-center border border-neutral-200">
+                <div className="text-lg font-semibold text-neutral-700 mb-1">Closed Income (This Month)</div>
+                <div className="text-2xl font-bold text-neutral-900 mb-1">${closedIncome.toLocaleString()}</div>
+                <div className="text-xs text-neutral-400">Already received</div>
               </Card>
-              <Card className="p-6 flex flex-col items-center justify-center text-center shadow-md">
-                <div className="text-lg font-semibold text-gray-700 mb-1">Expenses Logged</div>
-                <div className="text-2xl font-bold text-red-500 mb-1">${expensesLogged.toLocaleString()}</div>
-                <div className="text-xs text-gray-400">Business expenses</div>
+              <Card className="p-6 flex flex-col items-center justify-center text-center border border-neutral-200">
+                <div className="text-lg font-semibold text-neutral-700 mb-1">Expenses Logged</div>
+                <div className="text-2xl font-bold text-neutral-900 mb-1">${expensesLogged.toLocaleString()}</div>
+                <div className="text-xs text-neutral-400">Business expenses</div>
               </Card>
-              <Card className="p-6 flex flex-col items-center justify-center text-center shadow-md">
-                <div className="text-lg font-semibold text-gray-700 mb-1">Est. Profit</div>
-                <div className="text-2xl font-bold text-purple-600 mb-1">${estimatedProfit.toLocaleString()}</div>
-                <div className="text-xs text-gray-400">After expenses</div>
+              <Card className="p-6 flex flex-col items-center justify-center text-center border border-neutral-200">
+                <div className="text-lg font-semibold text-neutral-700 mb-1">Est. Profit</div>
+                <div className="text-2xl font-bold text-neutral-900 mb-1">${estimatedProfit.toLocaleString()}</div>
+                <div className="text-xs text-neutral-400">After expenses</div>
               </Card>
             </div>
 
             {/* Closing Tracker */}
             <div className="mb-10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">Closing Tracker</h2>
+                <h2 className="text-2xl font-bold text-neutral-900">Closing Tracker</h2>
                 <Button onClick={() => {
                   setNewClosing({ client: "", address: "", date: todayStr, commission: "", status: "Upcoming" });
                   setShowClosingModal(true);
-                }}>Add Closing</Button>
+                }} className="bg-black text-white rounded-xl font-bold">Add Closing</Button>
               </div>
+              <div className="bg-white rounded-2xl border border-neutral-200 overflow-x-auto">
               <Table>
                 <thead>
                   <tr className="bg-gray-100">
@@ -342,64 +395,68 @@ export default function SmartFinancesPage() {
                     <th className="px-4 py-2">Commission</th>
                     <th className="px-4 py-2">Status</th>
                     <th className="px-4 py-2">Progress</th>
-                    <th className="px-4 py-2">Actions</th>
+                      <th className="px-4 py-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {closingsState.map((c) => (
-                    <tr key={c.id} className="text-center group hover:bg-red-50/30 transition">
+                    {closingsState.map((c) => (
+                      <tr key={c.id} className="text-center group hover:bg-red-50/30 transition">
                       <td className="px-4 py-2 font-medium">{c.client}</td>
                       <td className="px-4 py-2">{c.address}</td>
                       <td className="px-4 py-2">{c.date}</td>
                       <td className="px-4 py-2">${c.commission.toLocaleString()}</td>
                       <td className="px-4 py-2">
-                        <Select value={c.status} onValueChange={val => {
-                          const updated = [...closingsState];
-                          updated.find(item => item.id === c.id)!.status = val;
-                          setClosingsState(updated);
-                        }}>
-                          <SelectTrigger
-                            className={
-                              `bg-white min-w-[110px] border ` +
-                              (c.status === 'Closed' ? 'border-green-400 bg-green-50 text-green-700' :
-                               c.status === 'Pending' ? 'border-yellow-400 bg-yellow-50 text-yellow-700' :
-                               c.status === 'Upcoming' ? 'border-blue-400 bg-blue-50 text-blue-700' :
-                               c.status === 'Lost' ? 'border-red-400 bg-red-50 text-red-700' :
-                               '')
-                            }
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Upcoming">Upcoming</SelectItem>
-                            <SelectItem value="Pending">Pending</SelectItem>
-                            <SelectItem value="Closed">Closed</SelectItem>
-                            <SelectItem value="Lost">Lost</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <Select value={c.status} onValueChange={async val => {
+                            // Update in Supabase
+                            await supabase.from('finances').update({ status: val }).eq('id', c.id);
+                            // Update local state for immediate feedback
+                            const updated = [...closingsState];
+                            updated.find(item => item.id === c.id)!.status = val;
+                            setClosingsState(updated);
+                          }}>
+                            <SelectTrigger
+                              className={
+                                `bg-white min-w-[110px] border ` +
+                                (c.status === 'Closed' ? 'border-green-400 bg-green-50 text-green-700' :
+                                 c.status === 'Pending' ? 'border-yellow-400 bg-yellow-50 text-yellow-700' :
+                                 c.status === 'Upcoming' ? 'border-blue-400 bg-blue-50 text-blue-700' :
+                                 c.status === 'Lost' ? 'border-red-400 bg-red-50 text-red-700' :
+                                 '')
+                              }
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Upcoming">Upcoming</SelectItem>
+                              <SelectItem value="Pending">Pending</SelectItem>
+                              <SelectItem value="Closed">Closed</SelectItem>
+                              <SelectItem value="Lost">Lost</SelectItem>
+                            </SelectContent>
+                          </Select>
                       </td>
                       <td className="px-4 py-2">
-                        <Progress value={c.status === "Closed" ? 100 : c.status === "Pending" ? 60 : c.status === "Lost" ? 0 : 20} className="h-2" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <button
-                          onClick={() => askDelete(c.id!, 'closing')}
-                          className="p-1 rounded hover:bg-red-100 transition"
-                          title="Delete Closing"
-                        >
-                          <Trash2 size={16} className="text-red-400 group-hover:text-red-600 transition" />
-                        </button>
+                          <Progress value={c.status === "Closed" ? 100 : c.status === "Pending" ? 60 : c.status === "Lost" ? 0 : 20} className="h-2" />
+                        </td>
+                        <td className="px-2 py-2">
+                          <button
+                            onClick={() => askDelete(c.id!, 'closing')}
+                            className="p-1 rounded hover:bg-red-100 transition"
+                            title="Delete Closing"
+                          >
+                            <Trash2 size={16} className="text-red-400 group-hover:text-red-600 transition" />
+                          </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </Table>
+              </div>
             </div>
 
             {/* Commission Forecast & Cash Flow */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-              <Card className="p-6 shadow-md">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Commission Forecast</h2>
+              <Card className="p-6 border border-neutral-200">
+                <h2 className="text-xl font-bold mb-4 text-neutral-900">Commission Forecast</h2>
                 <div className="mb-6">
                   <div className="font-semibold text-blue-600 mb-2">Expected</div>
                   <BarChart data={monthlyData.map(d => ({ label: d.month, percentage: Math.round((d.expected / (goals.monthly || 25000)) * 100) }))} />
@@ -413,8 +470,8 @@ export default function SmartFinancesPage() {
                   <span>Received: <span className="font-bold">${receivedCurrentMonth.toLocaleString()}</span></span>
                 </div>
               </Card>
-              <Card className="p-6 shadow-md">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Income vs. Expenses</h2>
+              <Card className="p-6 border border-neutral-200">
+                <h2 className="text-xl font-bold mb-4 text-neutral-900">Income vs. Expenses</h2>
                 <div className="mb-6">
                   <div className="font-semibold text-blue-600 mb-2">Income</div>
                   <BarChart data={monthlyData.map(d => ({ label: d.month, percentage: Math.round((d.received / (goals.monthly || 25000)) * 100) }))} />
@@ -428,9 +485,9 @@ export default function SmartFinancesPage() {
 
             {/* Manual Expense Entry & Categorization */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-              <Card className="p-6 shadow-md">
+              <Card className="p-6 border border-neutral-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-800">Add Expense</h2>
+                  <h2 className="text-xl font-bold text-neutral-800">Add Expense</h2>
                   <Button onClick={() => {
                     setExpenseInput({ category: "", amount: "", date: todayStr });
                     setExpenseTag("");
@@ -488,9 +545,9 @@ export default function SmartFinancesPage() {
                 <Button className="mt-4">Export Report (PDF)</Button>
               </Card>
               {/* Reminders & Alerts */}
-              <Card className="p-6 shadow-md">
+              <Card className="p-6 border border-neutral-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-800">Reminders & Alerts</h2>
+                  <h2 className="text-xl font-bold text-neutral-800">Reminders & Alerts</h2>
                   <Button onClick={() => {
                     setNewReminder({ label: "", due: todayStr });
                     setShowReminderModal(true);
@@ -501,7 +558,7 @@ export default function SmartFinancesPage() {
                     <li key={r.id} className="flex justify-between items-center py-2 border-b border-gray-100 text-gray-700 group hover:bg-red-50/30 transition">
                       <span>{r.label}</span>
                       <span className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400">Due: {r.due}</span>
+                      <span className="text-xs text-gray-400">Due: {r.due}</span>
                         <button
                           onClick={() => askDelete(r.id!, 'reminder')}
                           className="p-1 rounded hover:bg-red-100 transition"
@@ -513,17 +570,19 @@ export default function SmartFinancesPage() {
                     </li>
                   ))}
                 </ul>
-                <div className="text-sm text-yellow-600 font-semibold">Alert: Slow closing detected for 123 Main St</div>
               </Card>
             </div>
 
             {/* Goal Tracking */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Goal Tracking</h2>
-              <Button onClick={() => setShowGoalModal(true)}>Set Goals</Button>
+              <h2 className="text-xl font-bold text-neutral-900">Goal Tracking</h2>
+              <div className="flex gap-2">
+                <Button onClick={() => setShowGoalModal(true)} className="bg-black text-white rounded-xl font-bold">Set Goals</Button>
+                <Button onClick={() => setShowResetGoalsModal(true)} className="bg-red-600 text-white rounded-xl font-bold text-sm px-4 py-2 hover:bg-red-700 transition">Reset</Button>
+              </div>
             </div>
             <div className="mb-10">
-              <Card className="p-6 shadow-md">
+              <Card className="p-6 border border-neutral-200">
                 <div className="mb-4">
                   <div className="flex flex-col md:flex-row gap-4 items-center">
                     <div className="flex-1">
@@ -557,9 +616,9 @@ export default function SmartFinancesPage() {
 
             {/* Add Closing Modal */}
             <Dialog open={showClosingModal} onOpenChange={setShowClosingModal}>
-              <DialogContent className="bg-[#eee8e6] rounded-[2rem] shadow-2xl w-full max-w-lg px-8 py-6 mx-auto border-none">
+              <DialogContent className="bg-white rounded-3xl w-full max-w-lg px-8 py-6 mx-auto border-none">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Add Closing</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Add Closing</DialogTitle>
                 </DialogHeader>
                 <form className="space-y-4" onSubmit={e => { e.preventDefault(); addClosing(); }}>
                   <div>
@@ -621,9 +680,9 @@ export default function SmartFinancesPage() {
 
             {/* Set Goals Modal */}
             <Dialog open={showGoalModal} onOpenChange={setShowGoalModal}>
-              <DialogContent className="bg-[#eee8e6] rounded-[2rem] shadow-2xl w-full max-w-lg px-8 py-6 mx-auto border-none">
+              <DialogContent className="bg-white rounded-3xl w-full max-w-lg px-8 py-6 mx-auto border-none">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Set Goals</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Set Goals</DialogTitle>
                 </DialogHeader>
                 <form className="space-y-4" onSubmit={e => { e.preventDefault(); saveGoals(); }}>
                   <div>
@@ -648,9 +707,9 @@ export default function SmartFinancesPage() {
 
             {/* Add Reminder Modal */}
             <Dialog open={showReminderModal} onOpenChange={setShowReminderModal}>
-              <DialogContent className="bg-[#eee8e6] rounded-[2rem] shadow-2xl w-full max-w-lg px-8 py-6 mx-auto border-none">
+              <DialogContent className="bg-white rounded-3xl w-full max-w-lg px-8 py-6 mx-auto border-none">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Add Reminder</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Add Reminder</DialogTitle>
                 </DialogHeader>
                 <form className="space-y-4" onSubmit={e => { e.preventDefault(); addReminder(); }}>
                   <div>
@@ -690,9 +749,9 @@ export default function SmartFinancesPage() {
 
             {/* Add Expense Modal */}
             <Dialog open={showExpenseModal} onOpenChange={setShowExpenseModal}>
-              <DialogContent className="bg-[#eee8e6] rounded-[2rem] shadow-2xl w-full max-w-lg px-8 py-6 mx-auto border-none">
+              <DialogContent className="bg-white rounded-3xl w-full max-w-lg px-8 py-6 mx-auto border-none">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Add Expense</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Add Expense</DialogTitle>
                 </DialogHeader>
                 <form className="space-y-4" onSubmit={e => {
                   e.preventDefault();
@@ -755,9 +814,9 @@ export default function SmartFinancesPage() {
 
             {/* Delete Confirmation Modal */}
             <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-              <DialogContent className="bg-[#eee8e6] rounded-[2rem] shadow-2xl w-full max-w-md px-8 py-6 mx-auto border-none">
+              <DialogContent className="bg-white rounded-3xl w-full max-w-md px-8 py-6 mx-auto border-none">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Delete {pendingDelete?.type === 'closing' ? 'Closing' : pendingDelete?.type === 'expense' ? 'Expense' : 'Reminder'}</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Delete {pendingDelete?.type === 'closing' ? 'Closing' : pendingDelete?.type === 'expense' ? 'Expense' : 'Reminder'}</DialogTitle>
                 </DialogHeader>
                 <p className="text-base text-gray-700 mb-4">
                   Are you sure you want to delete this {pendingDelete?.type}? This action cannot be undone.
@@ -765,6 +824,42 @@ export default function SmartFinancesPage() {
                 <div className="flex justify-end gap-4">
                   <Button type="button" variant="secondary" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
                   <Button type="button" className="bg-red-600 text-white hover:bg-red-700" onClick={confirmDelete}>Delete</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Reset Goals Modal */}
+            <Dialog open={showResetGoalsModal} onOpenChange={setShowResetGoalsModal}>
+              <DialogContent className="bg-white rounded-3xl w-full max-w-md px-8 py-6 mx-auto border-none">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Reset Goals</DialogTitle>
+                </DialogHeader>
+                <p className="text-base text-gray-700 mb-4">
+                  Are you sure you want to reset your goals? This will delete your monthly, quarterly, and yearly targets. This action cannot be undone.
+                </p>
+                <div className="flex justify-end gap-4">
+                  <button
+                    type="button"
+                    className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-neutral-800 transition border-none"
+                    onClick={() => setShowResetGoalsModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full bg-red-600 text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-red-700 transition border-none"
+                    onClick={async () => {
+                      if (!user?.id) return;
+                      setGoalsLoading(true);
+                      await supabase.from('goals').delete().eq('user_id', user.id);
+                      setGoals({ monthly: 0, quarterly: 0, yearly: 0 });
+                      setGoalsId(null);
+                      setGoalsLoading(false);
+                      setShowResetGoalsModal(false);
+                    }}
+                  >
+                    Reset
+                  </button>
                 </div>
               </DialogContent>
             </Dialog>

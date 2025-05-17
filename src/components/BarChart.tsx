@@ -21,11 +21,11 @@ interface BarChartProps {
 
 const GRADIENT_ID = "area-gradient";
 
-// Use a modern blue-to-purple gradient
-const AREA_GRADIENT_START = "#4F8CFF"; // blue
-const AREA_GRADIENT_END = "#857FEB";   // purple
-const LINE_COLOR = "#4F8CFF";
-const DOT_COLOR = "#857FEB";
+// Use a modern black gradient
+const AREA_GRADIENT_START = "#000000"; // black
+const AREA_GRADIENT_END = "#222222";   // dark gray/black
+const LINE_COLOR = "#000000";
+const DOT_COLOR = "#000000";
 
 const AreaChart = ({ data }: BarChartProps) => {
   return (

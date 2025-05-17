@@ -29,6 +29,16 @@ const getMaterialIconUrl = (iconName) => `https://fonts.gstatic.com/s/i/material
 // Helper to get Simple Icons SVG URL
 const getSimpleIconUrl = (slug) => `https://cdn.simpleicons.org/${slug}`;
 
+// Utility to extract domain from URL for favicon fetching
+function getDomainFromUrl(url) {
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return u.hostname;
+  } catch {
+    return url;
+  }
+}
+
 const MyToolsPage = () => {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +49,7 @@ const MyToolsPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [showIconModal, setShowIconModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [user, setUser] = useState(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -70,12 +81,16 @@ const MyToolsPage = () => {
     }
   }, [iconSearch]);
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
+  }, []);
+
   // Fetch tools from Supabase
   useEffect(() => {
     const fetchTools = async () => {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase.from('tools').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('tools').select('*').eq('user_id', user?.id).order('created_at', { ascending: false });
       if (error) {
         setError('Failed to fetch tools.');
         setTools([]);
@@ -84,8 +99,8 @@ const MyToolsPage = () => {
       }
       setLoading(false);
     };
-    fetchTools();
-  }, []);
+    if (user?.id) fetchTools();
+  }, [user]);
 
   // All tags for filter dropdown
   const allTags = Array.from(new Set(tools.flatMap(tool => tool.tags || [])));
@@ -165,6 +180,7 @@ const MyToolsPage = () => {
       tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
       pinned: form.pinned,
       icon_url: iconUrl,
+      user_id: user?.id,
     };
     const { data, error } = await supabase.from('tools').insert([newTool]).select();
     setFormLoading(false);
@@ -252,6 +268,7 @@ const MyToolsPage = () => {
       tags: editForm.tags.split(",").map((t) => t.trim()).filter(Boolean),
       pinned: editForm.pinned,
       icon_url: iconUrl,
+      user_id: user?.id,
     };
     const { error } = await supabase.from('tools').update(updatedTool).eq('id', editForm.id);
     setEditFormLoading(false);
@@ -264,18 +281,17 @@ const MyToolsPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
+    <div className="relative min-h-screen bg-neutral-100">
+      <div className="relative z-10 min-h-screen px-6 py-4">
         <Header activeTab="My Tools" />
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">My Tools</h1>
-              <p className="text-gray-500">A personalized dashboard of AI tools for realtors. Search, filter, and manage your toolkit.</p>
+              <h1 className="text-3xl font-extrabold mb-2 text-neutral-900">My Tools</h1>
+              <p className="text-neutral-500">A personalized dashboard of AI tools for realtors. Search, filter, and manage your toolkit.</p>
             </div>
             <button
-              className="flex items-center text-white px-3 py-1.5 rounded-2xl space-x-2 shadow-lg"
-              style={{ background: 'linear-gradient(180deg, #4F8CFF 0%, #2563EB 100%)' }}
+              className="flex items-center bg-black text-white px-5 py-2 rounded-xl space-x-2 shadow-lg font-bold hover:bg-neutral-800 transition"
               onClick={() => setShowModal(true)}
             >
               <Plus size={16} />
@@ -283,23 +299,23 @@ const MyToolsPage = () => {
             </button>
           </div>
         </div>
-        <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">
+        <div className="w-full max-w-full mx-auto bg-white rounded-3xl p-6">
           {/* Top control bar */}
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
               <input
                 type="text"
                 placeholder="Search tools"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-64 rounded-lg bg-gray-50 pl-10 pr-4 py-2 text-sm border border-gray-200"
+                className="w-64 rounded-lg bg-neutral-50 pl-10 pr-4 py-2 text-sm border border-neutral-200 text-black"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Sort:</span>
+              <span className="text-sm text-neutral-600">Sort:</span>
               <select
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-black"
                 value={sort}
                 onChange={e => setSort(e.target.value)}
               >
@@ -307,100 +323,104 @@ const MyToolsPage = () => {
                 <option value="name">Name</option>
               </select>
             </div>
-            <button className="flex items-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm ml-auto">
+            <button className="flex items-center px-3 py-2 rounded-lg border border-neutral-200 bg-white text-neutral-700 text-sm ml-auto">
               <Filter size={16} className="mr-2" />
               More Filters
             </button>
           </div>
           {/* Tool cards grid */}
           {loading ? (
-            <div className="text-center text-gray-500 py-12">Loading tools...</div>
+            <div className="text-center text-neutral-500 py-12">Loading tools...</div>
           ) : error ? (
             <div className="text-center text-red-500 py-12">{error}</div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="flex flex-wrap gap-6">
               {filteredTools.map(tool => (
                 <div
                   key={tool.id}
-                  className="rounded-[2rem] bg-white shadow-lg flex flex-col items-center p-0 max-w-[240px] w-full relative"
-                  style={{ minWidth: 200, minHeight: 220 }}
+                  className="backdrop-blur-md bg-white/60 border border-neutral-200 rounded-2xl shadow-lg flex flex-col items-center justify-between p-2 max-w-[200px] w-full min-h-[170px] transition-transform duration-200 hover:scale-[1.04] hover:shadow-2xl cursor-pointer"
+                  style={{ margin: 0 }}
                 >
-                  {/* Small cute Pinned badge card */}
-                  {tool.pinned && (
-                    <div className="absolute top-2 left-2 z-20">
-                      <div
-                        className="bg-gradient-to-r from-[#FFD700] via-[#FFB300] to-[#FFEA70] text-white font-bold text-xs px-3 py-1 rounded-xl shadow-md flex items-center justify-center"
-                        style={{ minWidth: 48, minHeight: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
-                      >
-                        <span className="w-full text-center">Pinned</span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Top blue rounded rectangle area */}
-                  <div className="w-[90%] mx-auto mt-2 mb-1 h-[100px] flex items-center justify-center rounded-[1.2rem] bg-gradient-to-br from-blue-400 via-blue-300 to-blue-500 shadow-inner overflow-hidden">
-                    <span className="text-white text-2xl font-bold text-center w-full px-4 truncate">{tool.name}</span>
-                  </div>
-                  {/* Main content */}
-                  <div className="flex flex-col items-center px-4 pt-2 pb-0 w-full flex-1">
-                    {tool.description && (
-                      <p className="text-gray-600 text-xs w-full mb-0 text-left" style={{ maxWidth: '90%' }}>{tool.description}</p>
+                  {/* Icon and Pinned badge */}
+                  <div className="flex items-center justify-between w-full mb-2">
+                    {tool.icon ? (
+                      <img src={tool.icon} alt={tool.name} className="w-8 h-8 object-contain rounded-lg bg-white/80 border border-neutral-100" />
+                    ) : tool.url ? (
+                      <img
+                        src={`https://www.google.com/s2/favicons?sz=128&domain=${getDomainFromUrl(tool.url)}`}
+                        alt={tool.name}
+                        className="w-8 h-8 object-contain rounded-lg bg-white/80 border border-neutral-100"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-neutral-200 flex items-center justify-center text-lg font-bold text-neutral-400">{tool.name.charAt(0)}</div>
+                    )}
+                    {tool.pinned && (
+                      <span className="ml-auto bg-yellow-400 text-white text-xs font-bold px-2 py-0.5 rounded-xl shadow">Pinned</span>
                     )}
                   </div>
-                  {/* Bottom actions */}
-                  <div className="flex items-center w-full px-4 pb-4 pt-1 gap-x-4">
+                  {/* Tool name */}
+                  <div className="w-full text-center mb-1">
+                    <span className="text-lg font-bold text-neutral-900 truncate block" title={tool.name}>{tool.name}</span>
+                  </div>
+                  {/* Description */}
+                  {tool.description && (
+                    <div className="w-full text-xs text-neutral-600 text-center mb-2 truncate" title={tool.description}>{tool.description}</div>
+                  )}
+                  {/* Actions */}
+                  <div className="flex items-center justify-between w-full gap-2 mt-auto">
                     <button
-                      className="flex items-center justify-center w-9 h-9 flex-shrink-0 rounded-full border border-gray-200 bg-white hover:bg-gray-100 transition"
+                      className="flex items-center justify-center w-8 h-8 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-100 transition"
                       title="Edit"
                       onClick={() => openEditModal(tool)}
                     >
-                      <img src="/src/assets/pen-logo.svg" alt="Edit" className="w-5 h-5" />
+                      <img src="/src/assets/pen-logo.svg" alt="Edit" className="w-4 h-4" />
                     </button>
                     {tool.url && (
-                    <a
-                      href={getValidHref(tool.url || '')}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                        className="flex-1 bg-black text-white text-center rounded-xl py-2 font-semibold shadow hover:bg-gray-900 transition"
-                        style={{ fontSize: 15 }}
-                    >
+                      <a
+                        href={getValidHref(tool.url || '')}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 bg-black text-white text-center rounded-xl py-2 font-semibold shadow hover:bg-neutral-800 transition text-xs mx-1"
+                        style={{ fontSize: 13 }}
+                      >
                         Visit
-                    </a>
+                      </a>
                     )}
                     <button
-                      className="flex items-center justify-center w-9 h-9 flex-shrink-0 rounded-full border border-gray-200 bg-white hover:bg-red-50 transition text-red-600"
+                      className="flex items-center justify-center w-8 h-8 rounded-xl border border-neutral-200 bg-white hover:bg-red-50 transition text-red-600"
                       title="Delete"
                       onClick={() => handleDeleteClick(tool.id)}
                       disabled={deletingId === tool.id}
                     >
                       {deletingId === tool.id ? (
-                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
                       ) : (
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4" />
                       )}
                     </button>
                   </div>
                 </div>
               ))}
               {filteredTools.length === 0 && (
-                <div className="col-span-full text-center text-gray-500 py-12">No tools found.</div>
+                <div className="col-span-full text-center text-neutral-500 py-12">No tools found.</div>
               )}
             </div>
           )}
         </div>
         {/* Add Tool Modal */}
         <Dialog open={showModal} onOpenChange={handleModalChange}>
-          <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-xl px-8 py-6 mx-auto border-none">
+          <DialogContent className="bg-white rounded-3xl w-full max-w-xl px-8 py-6 mx-auto border-none">
             <DialogHeader>
-              <DialogTitle>Add Tool</DialogTitle>
+              <DialogTitle className="text-neutral-900 font-bold text-2xl">Add Tool</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-left text-sm font-medium mb-1">Name <span className="text-red-500">*</span></label>
+                <label className="block text-left text-sm font-medium mb-1 text-neutral-900">Name <span className="text-red-500">*</span></label>
                 <input
                   name="name"
                   value={form.name}
                   onChange={handleInput}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-black bg-white"
                   placeholder="Tool name"
                   required
                   disabled={formLoading}
@@ -408,12 +428,12 @@ const MyToolsPage = () => {
                 {formError.name && <div className="text-red-500 text-xs mt-1">{formError.name}</div>}
               </div>
               <div>
-                <label className="block text-left text-sm font-medium mb-1">URL <span className="text-red-500">*</span></label>
+                <label className="block text-left text-sm font-medium mb-1 text-neutral-900">URL <span className="text-red-500">*</span></label>
                 <input
                   name="url"
                   value={form.url}
                   onChange={handleInput}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-black bg-white"
                   placeholder="https://example.com"
                   required
                   disabled={formLoading}
@@ -421,24 +441,24 @@ const MyToolsPage = () => {
                 {formError.url && <div className="text-red-500 text-xs mt-1">{formError.url}</div>}
               </div>
               <div>
-                <label className="block text-left text-sm font-medium mb-1">Description</label>
+                <label className="block text-left text-sm font-medium mb-1 text-neutral-900">Description</label>
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={handleInput}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-black bg-white"
                   placeholder="Short description (optional)"
                   rows={2}
                   disabled={formLoading}
                 />
               </div>
               <div>
-                <label className="block text-left text-sm font-medium mb-1">Tags <span className="text-gray-400">(comma separated, optional)</span></label>
+                <label className="block text-left text-sm font-medium mb-1 text-neutral-900">Tags <span className="text-neutral-400">(comma separated, optional)</span></label>
                 <input
                   name="tags"
                   value={form.tags}
                   onChange={handleInput}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-black bg-white"
                   placeholder="e.g. ai, analytics, chatbot"
                   disabled={formLoading}
                 />
@@ -449,23 +469,23 @@ const MyToolsPage = () => {
                   name="pinned"
                   checked={form.pinned}
                   onChange={handleInput}
-                  className="h-4 w-4 rounded border-gray-300"
+                  className="h-4 w-4 rounded border-neutral-300"
                   disabled={formLoading}
                 />
-                <label className="text-sm font-medium">Pinned</label>
+                <label className="text-sm font-medium text-neutral-900">Pinned</label>
               </div>
               <div>
-                <label className="block text-left text-sm font-medium mb-1">Icon</label>
+                <label className="block text-left text-sm font-medium mb-1 text-neutral-900">Icon</label>
                 <div className="flex items-center gap-2">
                   <input
                     name="icon"
                     value={form.icon}
                     onChange={handleInput}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-black bg-white"
                     placeholder="Icon URL or emoji"
                     disabled={formLoading}
                   />
-                  <button type="button" className="p-2 rounded bg-gray-100 border border-gray-300" onClick={() => setShowIconModal(true)}>
+                  <button type="button" className="p-2 rounded bg-neutral-100 border border-neutral-300" onClick={() => setShowIconModal(true)}>
                     <ImageIcon className="w-5 h-5" />
                   </button>
                   <input
@@ -477,7 +497,7 @@ const MyToolsPage = () => {
                     id="iconFileInput"
                     disabled={formLoading}
                   />
-                  <label htmlFor="iconFileInput" className="p-2 rounded bg-gray-100 border border-gray-300 cursor-pointer">
+                  <label htmlFor="iconFileInput" className="p-2 rounded bg-neutral-100 border border-neutral-300 cursor-pointer">
                     Upload
                   </label>
                 </div>
@@ -487,7 +507,7 @@ const MyToolsPage = () => {
               </div>
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white rounded-lg py-2 font-medium mt-2 hover:bg-blue-700 transition"
+                className="w-full bg-black text-white rounded-lg py-2 font-bold mt-2 hover:bg-neutral-800 transition"
                 disabled={formLoading}
               >
                 {formLoading ? 'Adding...' : 'Add Tool'}
@@ -497,7 +517,7 @@ const MyToolsPage = () => {
         </Dialog>
         {/* Icon Picker Modal */}
         <Dialog open={showIconModal} onOpenChange={setShowIconModal}>
-          <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-2xl px-8 py-6 mx-auto border-none">
+          <DialogContent className="bg-white rounded-3xl w-full max-w-2xl px-8 py-6 mx-auto border-none">
             <DialogHeader>
               <DialogTitle>Pick an Icon</DialogTitle>
             </DialogHeader>
@@ -521,17 +541,17 @@ const MyToolsPage = () => {
         </Dialog>
         {/* Delete Tool Modal */}
         <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-          <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-md px-8 py-6 mx-auto border-none">
+          <DialogContent className="bg-white rounded-3xl w-full max-w-md px-8 py-6 mx-auto border-none">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Delete Tool</DialogTitle>
+              <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Delete Tool</DialogTitle>
             </DialogHeader>
             <p className="text-base text-gray-700 mb-4">
-              Are you sure you want to delete this tool?
+              Are you sure you want to delete this tool? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-4">
               <button
                 type="button"
-                className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-gray-800 transition border-none"
+                className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-neutral-800 transition border-none"
                 onClick={() => setShowDeleteModal(false)}
               >
                 Cancel
@@ -549,7 +569,7 @@ const MyToolsPage = () => {
         </Dialog>
         {/* Edit Tool Modal */}
         <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-          <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-xl px-8 py-6 mx-auto border-none">
+          <DialogContent className="bg-[#eee8e6] rounded-[3rem] w-full max-w-xl px-8 py-6 mx-auto border-none">
             <DialogHeader>
               <DialogTitle>Edit Tool</DialogTitle>
             </DialogHeader>

@@ -43,6 +43,7 @@ const TaskPage = () => {
     priority: '',
     status: ''
   });
+  const [user, setUser] = useState(null);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -57,12 +58,16 @@ const TaskPage = () => {
 
   // Fetch tasks from Supabase
   const fetchTasks = async () => {
-    const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('tasks').select('*').eq('user_id', user?.id).order('created_at', { ascending: false });
     if (!error) setTasks(data || []);
   };
 
   useEffect(() => {
-    fetchTasks();
+    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
+  }, []);
+
+  useEffect(() => {
+    if (user?.id) fetchTasks();
     // Real-time subscription
     const channel = supabase.channel('public:tasks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
@@ -72,7 +77,7 @@ const TaskPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   // Edit handler: open modal with task data
   const handleEdit = (task) => {
@@ -137,7 +142,8 @@ const TaskPage = () => {
         priority: form.priority,
         tags: form.tags,
         status: form.status,
-        completed: completedValue
+        completed: completedValue,
+        user_id: user?.id,
       }).eq('id', editId);
       if (error) {
         alert('Failed to update task: ' + error.message);
@@ -153,7 +159,8 @@ const TaskPage = () => {
           priority: form.priority,
           tags: form.tags,
           status: form.status || 'Assigned',
-          completed: completedValue
+          completed: completedValue,
+          user_id: user?.id,
         }
       ]);
       if (error) {
@@ -176,31 +183,30 @@ const TaskPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
+    <div className="relative min-h-screen bg-neutral-100">
+      <div className="relative z-10 min-h-screen px-6 py-4">
         <Header activeTab="Task" />
         
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Project Task Summary</h1>
-              <p className="text-gray-500">
+              <h1 className="text-3xl font-extrabold mb-2 text-neutral-900">Project Task Summary</h1>
+              <p className="text-neutral-500">
                 4 tasks assigned, 4 in progress, with clear priorities and deadlines.
               </p>
             </div>
             <Dialog open={showModal} onOpenChange={setShowModal}>
               <DialogTrigger asChild>
             <button
-              className="flex items-center text-white px-3 py-1.5 rounded-2xl space-x-2 shadow-lg"
-              style={{ background: 'linear-gradient(180deg, #4F8CFF 0%, #2563EB 100%)' }}
+                  className="flex items-center bg-black text-white px-5 py-2 rounded-xl space-x-2 shadow-lg font-bold hover:bg-neutral-800 transition"
             >
               <Plus size={16} />
               <span>New Task</span>
             </button>
               </DialogTrigger>
-              <DialogContent className="bg-[#eee8e6] rounded-[2rem] shadow-2xl w-full max-w-lg px-8 py-6 mx-auto border-none">
+              <DialogContent className="bg-white rounded-3xl px-8 py-6 mx-auto border-none">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">New Task</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">New Task</DialogTitle>
                 </DialogHeader>
                 <form className="space-y-4" onSubmit={handleSubmit}>
                   <div>
@@ -277,8 +283,8 @@ const TaskPage = () => {
                     <Input name="tags" value={form.tags} onChange={handleInput} placeholder="e.g. UI/UX, Branding" className="bg-white" />
                   </div>
                   <DialogFooter>
-                    <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-                    <Button type="submit">Add Task</Button>
+                    <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="bg-neutral-200 text-black rounded-xl font-bold">Cancel</Button>
+                    <Button type="submit" className="bg-black text-white rounded-xl font-bold">Add Task</Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
@@ -286,19 +292,19 @@ const TaskPage = () => {
           </div>
         </div>
         
-        <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">
+        <div className="w-full max-w-full mx-auto bg-white rounded-3xl p-6">
           <div className="flex justify-between items-center mb-4">
-            <div className="bg-[#fafafa] flex items-center space-x-2 px-3 py-1 max-w-max" style={{ borderRadius: '9999px', boxShadow: '0 2px 8px 0 rgba(180,180,200,0.08)' }}>
+            <div className="bg-white flex items-center space-x-2 px-3 py-1 max-w-max border border-neutral-200" style={{ borderRadius: '9999px' }}>
               {statusTabs.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSelectedStatus(tab)}
-                  className={`px-4 py-1 rounded-full text-sm font-medium ${selectedStatus === tab ? "bg-black text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                  className={`px-4 py-1 rounded-full text-sm font-medium ${selectedStatus === tab ? "bg-black text-white" : "text-neutral-600 hover:bg-neutral-100"}`}
                 >
                   {tab}
                 </button>
               ))}
-              <button className="px-4 py-1 rounded-full text-gray-600 hover:bg-gray-100 flex items-center justify-center">
+              <button className="px-4 py-1 rounded-full text-neutral-600 hover:bg-neutral-100 flex items-center justify-center">
                 <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white">
                   <Plus size={16} />
                 </span>
@@ -306,18 +312,18 @@ const TaskPage = () => {
             </div>
             <div className="flex items-center ml-4">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
                 <input
                   type="text"
                   placeholder="Search"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-64 rounded-full bg-white pl-10 pr-4 py-2 text-sm border border-gray-200"
+                  className="w-64 rounded-lg bg-neutral-50 pl-10 pr-4 py-2 text-sm border border-neutral-200 text-black"
                 />
               </div>
             </div>
           </div>
-          <div className="bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden mb-4">
+          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden mb-4">
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-1 text-gray-700">
@@ -482,15 +488,17 @@ const TaskPage = () => {
       </div>
       {/* Confirmation Modal for Delete */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-md px-8 py-6 mx-auto border-none">
+        <DialogContent className="bg-white rounded-3xl w-full max-w-md px-8 py-6 mx-auto border-none">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Delete Task</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Delete Task</DialogTitle>
           </DialogHeader>
-          <p className="text-base text-gray-700 mb-4">Are you sure you want to delete this task?</p>
+          <p className="text-base text-gray-700 mb-4">
+            Are you sure you want to delete this task? This action cannot be undone.
+          </p>
           <div className="flex justify-end gap-4">
             <button
               type="button"
-              className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-gray-800 transition border-none"
+              className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-neutral-800 transition border-none"
               onClick={cancelDelete}
             >
               Cancel

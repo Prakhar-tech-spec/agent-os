@@ -46,6 +46,7 @@ const SchedulePage = () => {
   const [animatingMenuKey, setAnimatingMenuKey] = useState<string | null>(null);
   const [menuAnimationState, setMenuAnimationState] = useState<'entering' | 'entered' | 'exiting' | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [user, setUser] = useState(null);
 
   // Handle form input
   const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -76,7 +77,8 @@ const SchedulePage = () => {
         custom_repeat: form.customRepeat,
         attendees: form.attendees,
         location: form.location,
-        link: form.link
+        link: form.link,
+        user_id: user?.id,
       }).eq('id', editingId);
       if (error) {
         setFormError({ title: 'Failed to update schedule. Please try again.' });
@@ -84,23 +86,24 @@ const SchedulePage = () => {
       }
     } else {
       // Insert new schedule
-    const { error } = await supabase.from('schedules').insert([
-      {
-        title: form.title,
+      const { error } = await supabase.from('schedules').insert([
+        {
+          title: form.title,
           purpose: form.purpose,
-        date: form.date,
-        time: form.time,
-        duration: form.duration === "Custom" ? form.customDuration : form.duration,
-        repeat: form.repeat,
-        custom_repeat: form.customRepeat,
-        attendees: form.attendees,
-        location: form.location,
-        link: form.link
-      }
-    ]);
-    if (error) {
-      setFormError({ title: 'Failed to add schedule. Please try again.' });
-      return;
+          date: form.date,
+          time: form.time,
+          duration: form.duration === "Custom" ? form.customDuration : form.duration,
+          repeat: form.repeat,
+          custom_repeat: form.customRepeat,
+          attendees: form.attendees,
+          location: form.location,
+          link: form.link,
+          user_id: user?.id,
+        }
+      ]);
+      if (error) {
+        setFormError({ title: 'Failed to add schedule. Please try again.' });
+        return;
       }
     }
     setShowModal(false);
@@ -111,16 +114,20 @@ const SchedulePage = () => {
   };
 
   // Fetch schedules from Supabase
-    const fetchSchedules = async () => {
-      setLoadingSchedules(true);
-      const { data, error } = await supabase.from('schedules').select('*').order('date', { ascending: true }).order('time', { ascending: true });
-      setSchedules(data || []);
-      setLoadingSchedules(false);
-    };
+  const fetchSchedules = async () => {
+    setLoadingSchedules(true);
+    const { data, error } = await supabase.from('schedules').select('*').eq('user_id', user?.id).order('date', { ascending: true }).order('time', { ascending: true });
+    setSchedules(data || []);
+    setLoadingSchedules(false);
+  };
 
   useEffect(() => {
-    fetchSchedules();
+    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
   }, []);
+
+  useEffect(() => {
+    if (user?.id) fetchSchedules();
+  }, [user]);
 
   // No meetings data, so show empty state
   // const meetingsData = [];
@@ -253,20 +260,19 @@ const SchedulePage = () => {
   };
 
   return (
-    <div className="relative min-h-screen">
-      <div className="relative z-10 min-h-screen bg-transparent px-6 py-4">
+    <div className="relative min-h-screen bg-neutral-100">
+      <div className="relative z-10 min-h-screen px-6 py-4">
         <Header activeTab="Schedule" />
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Schedule</h1>
-              <p className="text-gray-500">
+              <h1 className="text-3xl font-extrabold mb-2 text-neutral-900">Schedule</h1>
+              <p className="text-neutral-500">
                 Schedule with events: onboarding, sync meetings, and project kick-offs
               </p>
             </div>
             <button
-              className="flex items-center text-white px-3 py-1.5 rounded-2xl space-x-2 shadow-lg"
-              style={{ background: 'linear-gradient(180deg, #4F8CFF 0%, #2563EB 100%)' }}
+              className="flex items-center bg-black text-white px-5 py-2 rounded-xl space-x-2 shadow-lg font-bold hover:bg-neutral-800 transition"
               onClick={() => setShowModal(true)}
             >
               <Plus size={16} />
@@ -274,25 +280,25 @@ const SchedulePage = () => {
             </button>
           </div>
         </div>
-        <div className="w-full max-w-full mx-auto bg-[#e1e0e6] rounded-[2.5rem] p-4">
+        <div className="w-full max-w-full mx-auto bg-white rounded-3xl p-6 border border-neutral-200">
           {/* Timeline filters row */}
           <div className="flex justify-start space-x-6 px-8 pt-6 pb-2">
               <button
-              className={`text-lg font-normal transition-colors duration-150 pb-2 ${viewMode === "Timeline" ? "text-black border-b-4 border-black" : "text-gray-500"}`}
+              className={`text-lg font-normal transition-colors duration-150 pb-2 ${viewMode === "Timeline" ? "text-black border-b-4 border-black" : "text-neutral-500"}`}
                 onClick={() => setViewMode("Timeline")}
                 style={{ minWidth: 80 }}
               >
                 Timeline
               </button>
               <button
-              className={`text-lg font-normal transition-colors duration-150 pb-2 ${viewMode === "Kanban" ? "text-black border-b-4 border-black" : "text-gray-500"}`}
+              className={`text-lg font-normal transition-colors duration-150 pb-2 ${viewMode === "Kanban" ? "text-black border-b-4 border-black" : "text-neutral-500"}`}
                 onClick={() => setViewMode("Kanban")}
                 style={{ minWidth: 80 }}
               >
                 Kanban
               </button>
               <button
-              className={`text-lg font-normal transition-colors duration-150 pb-2 ${viewMode === "List" ? "text-black border-b-4 border-black" : "text-gray-500"}`}
+              className={`text-lg font-normal transition-colors duration-150 pb-2 ${viewMode === "List" ? "text-black border-b-4 border-black" : "text-neutral-500"}`}
                 onClick={() => setViewMode("List")}
                 style={{ minWidth: 80 }}
               >
@@ -302,24 +308,24 @@ const SchedulePage = () => {
           {/* Today label and Day/Week/Month/month-selector in a row */}
           {viewMode === "Timeline" && (
             <div className="flex justify-between items-center px-8 mb-2">
-              <div className="text-2xl font-normal flex flex-row items-center">
+              <div className="text-2xl font-normal flex flex-row items-center text-neutral-900">
                 Today: {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
               </div>
             <div className="flex items-center gap-2">
               <button
-                className={`px-5 py-1.5 rounded-full text-sm font-bold transition-colors duration-150 ${dateViewMode === 'today' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700'}`}
+                className={`px-5 py-1.5 rounded-full text-sm font-bold transition-colors duration-150 ${dateViewMode === 'today' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-700'}`}
                 onClick={() => setDateViewMode('today')}
               >
                 Today
               </button>
               <button
-                className={`px-5 py-1.5 rounded-full text-sm font-bold transition-colors duration-150 ${dateViewMode === 'week' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700'}`}
+                className={`px-5 py-1.5 rounded-full text-sm font-bold transition-colors duration-150 ${dateViewMode === 'week' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-700'}`}
                 onClick={() => setDateViewMode('week')}
               >
                 This Week
               </button>
               <button
-                className={`px-5 py-1.5 rounded-full text-sm font-bold transition-colors duration-150 ${dateViewMode === 'month' ? 'bg-black text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
+                className={`px-5 py-1.5 rounded-full text-sm font-bold transition-colors duration-150 ${dateViewMode === 'month' ? 'bg-black text-white' : 'bg-white text-neutral-700 border border-neutral-300'}`}
                 onClick={() => setDateViewMode('month')}
               >
                 This Month
@@ -330,15 +336,15 @@ const SchedulePage = () => {
           {/* Add vertical space between filter bar and main content card */}
           <div className="h-2" />
           <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden">
+            <div className="col-span-2 bg-white rounded-3xl shadow-sm overflow-hidden border border-neutral-200">
               <div className="p-6">
                 {loadingSchedules ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                  <div className="flex flex-col items-center justify-center h-64 text-neutral-400">
                     <Calendar className="w-12 h-12 mb-4 animate-spin" />
                     <div className="text-lg font-semibold">Loading schedules...</div>
                   </div>
                 ) : schedules.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                  <div className="flex flex-col items-center justify-center h-64 text-neutral-400">
                     <Calendar className="w-12 h-12 mb-4" />
                     <div className="text-lg font-semibold">No meetings or events scheduled.</div>
                     <div className="text-sm">Add a new schedule to get started.</div>
@@ -351,13 +357,13 @@ const SchedulePage = () => {
                         <div className="flex flex-col w-24 mr-2">
                           <div className="h-10"></div>
                           {daysOfWeek.map((day, dayIdx) => (
-                            <div key={day} className="text-lg font-normal text-gray-500 flex items-center justify-center h-20 border-b border-gray-200">{day}</div>
+                            <div key={day} className="text-lg font-normal text-neutral-500 flex items-center justify-center h-20 border-b border-neutral-200">{day}</div>
                         ))}
                         </div>
                         <div className="flex-1">
                           <div className="flex">
                         {timelineTimes.map((slot) => (
-                              <div key={slot} className="text-lg text-gray-500 text-center py-2 w-32 border-r border-gray-200 h-10 flex items-center justify-center">{slot}</div>
+                              <div key={slot} className="text-lg text-neutral-500 text-center py-2 w-32 border-r border-neutral-200 h-10 flex items-center justify-center">{slot}</div>
                         ))}
                           </div>
                           <div className="flex">
@@ -367,24 +373,24 @@ const SchedulePage = () => {
                                   const event = timelineSchedules.find(ev => getDayIndex(ev.date) === dayIdx && ev.time === slot);
                                   const isEventToday = isToday(event?.date || '');
                               return (
-                                    <div key={day} className="h-20 flex items-center justify-center border-b border-gray-200">
+                                    <div key={day} className="h-20 flex items-center justify-center border-b border-neutral-200">
                                   {event && (
                                         <div
-                                          className={`rounded-full shadow flex items-center px-5 py-2 min-w-[160px] max-w-[220px] ${isEventToday ? 'bg-gradient-to-r from-orange-400 to-orange-600 text-white' : 'bg-white text-gray-900'}`}
+                                          className={`rounded-full shadow flex items-center px-5 py-2 min-w-[160px] max-w-[220px] ${isEventToday ? 'bg-gradient-to-r from-orange-400 to-orange-600 text-white' : 'bg-white text-neutral-900'}`}
                                           style={{ border: isEventToday ? '2px solid #ffd700' : '1.5px solid #e1e0e6', position: 'relative', gap: 8 }}
                                         >
                                           <div className="flex flex-col mr-3">
                                             <span className="font-semibold text-base leading-tight truncate" style={{ maxWidth: 120 }}>{event.title}</span>
-                                            <span className={`text-xs ${isEventToday ? 'text-white/90' : 'text-gray-500'}`}>{event.purpose}</span>
+                                            <span className={`text-xs ${isEventToday ? 'text-white/90' : 'text-neutral-500'}`}>{event.purpose}</span>
                                           </div>
                                           <div className="flex items-center ml-auto">
                                             {event.attendees && event.attendees.split(',').slice(0,3).map((name, idx) => (
-                                              <div key={idx} className={`w-6 h-6 rounded-full ${isEventToday ? 'bg-white/80 text-orange-500' : 'bg-gray-200 text-gray-700'} flex items-center justify-center font-bold text-xs border-2 border-white -ml-1 first:ml-0`}>
+                                              <div key={idx} className={`w-6 h-6 rounded-full ${isEventToday ? 'bg-white/80 text-orange-500' : 'bg-neutral-200 text-neutral-700'} flex items-center justify-center font-bold text-xs border-2 border-white -ml-1 first:ml-0`}>
                                                 {name.trim().charAt(0).toUpperCase()}
                                               </div>
                                             ))}
                                             {event.attendees && event.attendees.split(',').length > 3 && (
-                                              <div className={`w-6 h-6 rounded-full ${isEventToday ? 'bg-white/80 text-orange-500' : 'bg-gray-200 text-gray-700'} flex items-center justify-center font-bold text-xs border-2 border-white -ml-1`}>
+                                              <div className={`w-6 h-6 rounded-full ${isEventToday ? 'bg-white/80 text-orange-500' : 'bg-neutral-200 text-neutral-700'} flex items-center justify-center font-bold text-xs border-2 border-white -ml-1`}>
                                                 +{event.attendees.split(',').length - 3}
                                               </div>
                                             )}
@@ -408,25 +414,22 @@ const SchedulePage = () => {
                           // Get all meetings for this day in the current week
                           const dayMeetings = timelineSchedules.filter(ev => getDayIndex(ev.date) === dayIdx);
                           return (
-                            <div key={day} className="flex-1 min-w-[220px] bg-[#f5f4f6] rounded-2xl p-3">
-                              <div className="text-lg font-bold mb-2 text-gray-700 text-center">{day}</div>
+                            <div key={day} className="flex-1 min-w-[220px] bg-white rounded-2xl p-3">
+                              <div className="text-lg font-bold mb-2 text-neutral-700 text-center">{day}</div>
                               <div className="flex flex-col gap-4">
                                 {dayMeetings.length === 0 ? (
-                                  <div className="text-gray-400 text-center text-sm">No meetings</div>
+                                  <div className="text-neutral-400 text-center text-sm">No meetings</div>
                                 ) : (
                                   dayMeetings.map((item, i) => (
                                     <div
                                       key={item.id}
-                                      className="rounded-[2.2rem] p-5 shadow-xl flex flex-col gap-3 relative"
+                                      className="rounded-[2.2rem] p-5 flex flex-col gap-3 relative"
                                       style={{
                                         background: isToday(item.date)
                                           ? 'linear-gradient(135deg, #fbb040 0%, #f68c5d 60%, #b85c2c 100%)'
                                           : 'linear-gradient(135deg, #f5f4f6 0%, #e1e0e6 100%)',
                                         color: isToday(item.date) ? '#fff' : '#222',
                                         border: isToday(item.date) ? '2.5px solid #ffd700' : '1.5px solid #e1e0e6',
-                                        boxShadow: isToday(item.date)
-                                          ? '0 6px 32px 0 rgba(184, 92, 44, 0.18), 0 0 0 4px #ffe9b3 inset'
-                                          : '0 2px 12px 0 rgba(180,180,200,0.10)',
                                         overflow: 'hidden',
                                         minWidth: 210,
                                         maxWidth: 270,
@@ -492,11 +495,11 @@ const SchedulePage = () => {
                     // List View (Table Format)
                     <div className="overflow-x-auto" style={{ maxHeight: '600px' }}>
                       {filteredSchedules.length === 0 ? (
-                        <div className="text-gray-400 text-center text-base">No meetings found.</div>
+                        <div className="text-neutral-400 text-center text-base">No meetings found.</div>
                       ) : (
                         <table className="min-w-full bg-white rounded-2xl overflow-hidden">
                           <thead>
-                            <tr className="bg-[#f5f4f6] text-gray-700 text-left">
+                            <tr className="bg-neutral-100 text-neutral-700 text-left">
                               <th className="px-4 py-3 font-semibold">Title</th>
                               <th className="px-4 py-3 font-semibold">Purpose</th>
                               <th className="px-4 py-3 font-semibold">Date</th>
@@ -508,29 +511,29 @@ const SchedulePage = () => {
                           </thead>
                           <tbody>
                             {filteredSchedules.map((item, i) => (
-                              <tr key={item.id} className={i % 2 === 0 ? 'bg-white' : 'bg-[#f5f4f6]'}>
-                                <td className="px-4 py-3 font-medium text-gray-900">{item.title}</td>
-                                <td className="px-4 py-3 text-gray-700">{item.purpose}</td>
-                                <td className="px-4 py-3 text-gray-700">{item.date}</td>
-                                <td className="px-4 py-3 text-gray-700">{item.time}</td>
-                                <td className="px-4 py-3 text-gray-700">{item.duration}</td>
-                                <td className="px-4 py-3 text-gray-700">
+                              <tr key={item.id} className={i % 2 === 0 ? 'bg-neutral-100' : 'bg-neutral-200'}>
+                                <td className="px-4 py-3 font-medium text-neutral-900">{item.title}</td>
+                                <td className="px-4 py-3 text-neutral-700">{item.purpose}</td>
+                                <td className="px-4 py-3 text-neutral-700">{item.date}</td>
+                                <td className="px-4 py-3 text-neutral-700">{item.time}</td>
+                                <td className="px-4 py-3 text-neutral-700">{item.duration}</td>
+                                <td className="px-4 py-3 text-neutral-700">
                                   {item.attendees ? (
                                     <div className="flex items-center gap-1">
                                       {item.attendees.split(',').slice(0,2).map((name, idx) => (
-                                        <div key={idx} className="w-7 h-7 rounded-full bg-[#e1e0e6] flex items-center justify-center text-[#f68c5d] font-bold text-base border-2 border-white">
+                                        <div key={idx} className="w-7 h-7 rounded-full bg-neutral-200 flex items-center justify-center text-[#f68c5d] font-bold text-base border-2 border-neutral-300">
                                           {name.trim().charAt(0).toUpperCase()}
                                         </div>
                                       ))}
                                       {item.attendees.split(',').length > 2 && (
-                                        <div className="w-7 h-7 rounded-full bg-[#e1e0e6] flex items-center justify-center text-[#f68c5d] font-bold text-base border-2 border-white">
+                                        <div className="w-7 h-7 rounded-full bg-neutral-200 flex items-center justify-center text-[#f68c5d] font-bold text-base border-2 border-neutral-300">
                                           +{item.attendees.split(',').length - 2}
                           </div>
                                       )}
-                                      <span className="ml-2 text-sm font-medium text-gray-700">{item.attendees.split(',').length}</span>
+                                      <span className="ml-2 text-sm font-medium text-neutral-700">{item.attendees.split(',').length}</span>
                                     </div>
                                   ) : (
-                                    <span className="text-gray-400">—</span>
+                                    <span className="text-neutral-400">—</span>
                           )}
                                 </td>
                                 <td className="px-4 py-3">
@@ -545,7 +548,7 @@ const SchedulePage = () => {
                                       Link
                             </a>
                                   ) : (
-                                    <span className="text-gray-400">—</span>
+                                    <span className="text-neutral-400">—</span>
                           )}
                                 </td>
                               </tr>
@@ -558,8 +561,8 @@ const SchedulePage = () => {
                 )}
               </div>
             </div>
-            <div className="bg-[#f5f4f6] rounded-3xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
+            <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-neutral-200">
+              <div className="p-6 border-b border-neutral-100">
                 {/* Schedule list heading and filters */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
@@ -569,12 +572,12 @@ const SchedulePage = () => {
                   {/* ...existing day-of-week and date filters can go here in the future... */}
                 </div>
                 {loadingSchedules ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+                  <div className="flex flex-col items-center justify-center h-32 text-neutral-400">
                     <Clock className="w-8 h-8 mb-2 animate-spin" />
                     <div className="text-base font-medium">Loading meetings...</div>
                   </div>
                 ) : schedules.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+                  <div className="flex flex-col items-center justify-center h-32 text-neutral-400">
                     <Clock className="w-8 h-8 mb-2" />
                     <div className="text-base font-medium">No meetings found.</div>
                   </div>
@@ -599,7 +602,7 @@ const SchedulePage = () => {
                         >
                           {isToday(item.date) ? (
                             <div
-                              className="rounded-[2rem] p-3 shadow-lg flex flex-col gap-2"
+                              className="rounded-[2rem] p-3 flex flex-col gap-2"
                               style={{
                                 background: `linear-gradient(135deg, #fbb040 0%, #f68c5d 60%, #b85c2c 100%)`,
                                 color: '#fff',
@@ -609,19 +612,6 @@ const SchedulePage = () => {
                                 boxShadow: '0 4px 24px 0 rgba(184, 92, 44, 0.18), inset 0 2px 16px 0 rgba(255, 215, 0, 0.13)',
                               }}
                             >
-                              {/* Gold shimmer overlay */}
-                              <div style={{
-                                pointerEvents: 'none',
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                zIndex: 0,
-                                opacity: 0.18,
-                                background: `url('data:image/svg+xml;utf8,<svg width=\"100%\" height=\"100%\" viewBox=\"0 0 200 60\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"200\" y2=\"60\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"%23fffbe6\" stop-opacity=\"0.7\"/><stop offset=\"1\" stop-color=\"%23ffd700\" stop-opacity=\"0.2\"/></linearGradient><rect x=\"0\" y=\"0\" width=\"200\" height=\"60\" fill=\"url(%23g)\"/><ellipse cx=\"160\" cy=\"20\" rx=\"30\" ry=\"8\" fill=\"%23fffbe6\" fill-opacity=\"0.13\"/><ellipse cx=\"60\" cy=\"50\" rx=\"20\" ry=\"5\" fill=\"%23ffd700\" fill-opacity=\"0.09\"/></svg>') repeat`,
-                                borderRadius: '2rem',
-                              }} />
                               <div style={{ position: 'relative', zIndex: 1 }}>
                                 <div className="flex items-center justify-between">
                                   <div className="text-xl font-semibold flex items-center">
@@ -673,20 +663,20 @@ const SchedulePage = () => {
                                     </button>
                                     {(openScheduleMenu === menuKey || menuAnimationState === 'exiting') && (
                                       <div
-                                        className={`absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-2xl shadow-lg z-20 transition-all duration-200 ease-out
+                                        className={`absolute right-0 mt-2 w-32 bg-white border border-neutral-200 rounded-2xl shadow-lg z-20 transition-all duration-200 ease-out
                                           ${menuAnimationState === 'entering' ? 'opacity-0 translate-y-2 scale-95 pointer-events-none' : ''}
                                           ${menuAnimationState === 'entered' ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : ''}
                                           ${menuAnimationState === 'exiting' ? 'opacity-0 translate-y-2 scale-95 pointer-events-none' : ''}`}
                                         style={{ willChange: 'opacity, transform' }}
                                       >
                                         <button
-                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+                                          className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg flex items-center gap-2"
                                           onClick={() => { handleEditSchedule(item); setOpenScheduleMenu(null); }}
                                         >
                                           Edit
                                         </button>
                                         <button
-                                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+                                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-neutral-100 rounded-lg flex items-center gap-2"
                                           onClick={() => { setOpenScheduleMenu(null); handleDeleteSchedule(item.id); }}
                                           disabled={deletingScheduleId === item.id}
                                         >
@@ -734,7 +724,7 @@ const SchedulePage = () => {
                             </div>
                           ) : (
                             <div
-                              className="rounded-[2rem] p-3 shadow-lg flex flex-col gap-2"
+                              className="rounded-[2rem] p-3 flex flex-col gap-2"
                               style={{
                                 background: 'linear-gradient(135deg, #f5f4f6 0%, #e1e0e6 100%)',
                                 border: '2px solid #d1d6e2',
@@ -790,20 +780,20 @@ const SchedulePage = () => {
                                   </button>
                                   {(openScheduleMenu === menuKey || menuAnimationState === 'exiting') && (
                                     <div
-                                      className={`absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-2xl shadow-lg z-20 transition-all duration-200 ease-out
+                                      className={`absolute right-0 mt-2 w-32 bg-white border border-neutral-200 rounded-2xl shadow-lg z-20 transition-all duration-200 ease-out
                                         ${menuAnimationState === 'entering' ? 'opacity-0 translate-y-2 scale-95 pointer-events-none' : ''}
                                         ${menuAnimationState === 'entered' ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : ''}
                                         ${menuAnimationState === 'exiting' ? 'opacity-0 translate-y-2 scale-95 pointer-events-none' : ''}`}
                                       style={{ willChange: 'opacity, transform' }}
                                     >
                                       <button
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+                                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-lg flex items-center gap-2"
                                         onClick={() => { handleEditSchedule(item); setOpenScheduleMenu(null); }}
                                       >
                                         Edit
                                       </button>
                                       <button
-                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-neutral-100 rounded-lg flex items-center gap-2"
                                         onClick={() => { setOpenScheduleMenu(null); handleDeleteSchedule(item.id); }}
                                         disabled={deletingScheduleId === item.id}
                                       >
@@ -831,7 +821,7 @@ const SchedulePage = () => {
                                     </div>
                         )}
                                   {item.attendees && (
-                                    <span className="ml-2 text-sm font-medium text-gray-700">{item.attendees.split(',').length} participants</span>
+                                    <span className="ml-2 text-sm font-medium text-neutral-700">{item.attendees.split(',').length} participants</span>
                                   )}
                                 </div>
                               </div>
@@ -861,31 +851,31 @@ const SchedulePage = () => {
       </div>
       {/* New Schedule Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-4xl px-8 py-6 mx-auto border-none">
+        <DialogContent className="bg-neutral-100 rounded-[3rem] shadow-2xl w-full max-w-4xl px-8 py-6 mx-auto border-none">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">New Schedule</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">New Schedule</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Title <span className="text-red-500">*</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Title <span className="text-red-500">*</span></label>
               <input
                 name="title"
                 value={form.title}
                 onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
                 placeholder="e.g. Call with John (buyer)"
                 required
               />
               {formError.title && <div className="text-red-500 text-xs mt-1">{formError.title}</div>}
             </div>
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Purpose <span className="text-red-500">*</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Purpose <span className="text-red-500">*</span></label>
                 <input
                   name="purpose"
                   value={form.purpose || ''}
                   onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
                   placeholder="e.g. Discuss project goals"
                   required
                 />
@@ -894,33 +884,33 @@ const SchedulePage = () => {
             </div>
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Date <span className="text-red-500">*</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Date <span className="text-red-500">*</span></label>
                 <input
                   type="date"
                   name="date"
                   value={form.date}
                   onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
                   required
                 />
                 {formError.date && <div className="text-red-500 text-xs mt-1">{formError.date}</div>}
               </div>
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Time <span className="text-red-500">*</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Time <span className="text-red-500">*</span></label>
                 <input
                   type="time"
                   name="time"
                   value={form.time}
                   onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
                   required
                 />
                 {formError.time && <div className="text-red-500 text-xs mt-1">{formError.time}</div>}
               </div>
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Duration <span className="text-red-500">*</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Duration <span className="text-red-500">*</span></label>
                 <Select value={form.duration} onValueChange={val => setForm(f => ({ ...f, duration: val }))}>
-                  <SelectTrigger className="bg-white w-full rounded-2xl border border-gray-200 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-orange-200 transition">
+                  <SelectTrigger className="bg-white w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-orange-200 transition">
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
                   <SelectContent>
@@ -936,7 +926,7 @@ const SchedulePage = () => {
                     name="customDuration"
                     value={form.customDuration}
                     onChange={handleInput}
-                    className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition mt-2"
+                    className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition mt-2"
                     placeholder="Enter custom duration (optional)"
                   />
                 )}
@@ -945,12 +935,12 @@ const SchedulePage = () => {
             </div>
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Repeat? <span className="text-gray-400">(optional)</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Repeat? <span className="text-gray-400">(optional)</span></label>
               <select
                 name="repeat"
                 value={form.repeat}
                 onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
               >
                 <option value="None">None</option>
                 <option value="Daily">Daily</option>
@@ -962,38 +952,38 @@ const SchedulePage = () => {
                   name="customRepeat"
                   value={form.customRepeat}
                   onChange={handleInput}
-                    className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition mt-2"
+                    className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition mt-2"
                     placeholder="Describe custom repeat (optional)"
                 />
               )}
             </div>
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Attendees <span className="text-gray-400">(optional)</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Attendees <span className="text-gray-400">(optional)</span></label>
               <input
                 name="attendees"
                 value={form.attendees}
                 onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
                   placeholder="Add emails or names, comma separated (optional)"
               />
             </div>
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Location <span className="text-gray-400">(optional)</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Location <span className="text-gray-400">(optional)</span></label>
               <input
                 name="location"
                 value={form.location}
                 onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
                   placeholder="e.g. Zoom, Office, or custom link (optional)"
               />
             </div>
               <div className="flex-1">
-                <label className="block text-left text-base font-semibold mb-2 text-gray-800">Meeting Link <span className="text-gray-400">(optional)</span></label>
+                <label className="block text-left text-base font-semibold mb-2 text-neutral-800">Meeting Link <span className="text-gray-400">(optional)</span></label>
               <input
                 name="link"
                 value={form.link}
                 onChange={handleInput}
-                  className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
+                  className="w-full rounded-2xl border border-neutral-200 px-3 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-200 transition"
                   placeholder="e.g. Zoom or Google Meet link (optional)"
                 type="url"
               />
@@ -1001,7 +991,7 @@ const SchedulePage = () => {
             </div>
             <button
               type="submit"
-              className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-gray-800 transition border-none"
+              className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-neutral-800 transition border-none"
             >
               Add Schedule
             </button>
@@ -1010,17 +1000,17 @@ const SchedulePage = () => {
       </Dialog>
       {/* Delete Schedule Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="bg-[#eee8e6] rounded-[3rem] shadow-2xl w-full max-w-md px-8 py-6 mx-auto border-none">
+        <DialogContent className="bg-white rounded-3xl w-full max-w-md px-8 py-6 mx-auto border-none">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900 mb-4">Delete Schedule</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Delete Schedule</DialogTitle>
           </DialogHeader>
           <p className="text-base text-gray-700 mb-4">
-            Are you sure you want to delete this schedule?
+            Are you sure you want to delete this schedule? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-4">
             <button
               type="button"
-              className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-gray-800 transition border-none"
+              className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-neutral-800 transition border-none"
               onClick={() => setShowDeleteModal(false)}
             >
               Cancel
