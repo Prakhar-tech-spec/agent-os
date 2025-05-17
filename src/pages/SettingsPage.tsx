@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const SettingsPage = () => {
   const [profile, setProfile] = useState({
@@ -19,6 +20,11 @@ const SettingsPage = () => {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwError, setPwError] = useState("");
   const [showDarkNotif, setShowDarkNotif] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Fetch user email and name from Supabase
@@ -95,6 +101,44 @@ const SettingsPage = () => {
       setConfirmPassword("");
       setTimeout(() => setPwSuccess(false), 2000);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("");
+    setDeleteLoading(true);
+    // 1. Re-authenticate
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: profile.email,
+      password: deletePassword,
+    });
+    if (signInError) {
+      setDeleteError("Password is incorrect.");
+      setDeleteLoading(false);
+      return;
+    }
+    // 2. Delete all user data
+    const { error: rpcError } = await supabase.rpc('delete_user_and_data', { uid: userId });
+    if (rpcError) {
+      setDeleteError("Failed to delete user data. Please try again.");
+      setDeleteLoading(false);
+      return;
+    }
+    // 3. Delete user from auth (call backend/edge function)
+    // Replace URL with your deployed edge function endpoint
+    const res = await fetch('/api/delete-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    if (!res.ok) {
+      setDeleteError("Failed to delete user from authentication. Please contact support.");
+      setDeleteLoading(false);
+      return;
+    }
+    // 4. Log out and redirect
+    await supabase.auth.signOut();
+    setDeleteLoading(false);
+    navigate('/login');
   };
 
   return (
@@ -180,7 +224,18 @@ const SettingsPage = () => {
               </button>
               {pwError && <div className="text-red-600 font-semibold mb-2">{pwError}</div>}
               {pwSuccess && <div className="text-green-600 font-semibold mb-2">Password changed!</div>}
-              <button className="w-full bg-red-600 text-white rounded-xl py-2 font-bold mt-2 hover:bg-red-700 transition">Delete Account</button>
+              <button
+                className="w-full bg-red-600 text-white rounded-xl py-2 font-bold mt-2 hover:bg-red-700 transition"
+                onClick={() => {
+                  const subject = encodeURIComponent('Request to Delete My Account');
+                  const body = encodeURIComponent('Kindly delete my account.\n\nHere is my password - ');
+                  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=prakharr.creatific@gmail.com&su=${subject}&body=${body}`;
+                  window.open(gmailUrl, '_blank');
+                }}
+                type="button"
+              >
+                Request Delete Account
+              </button>
             </div>
           </section>
 

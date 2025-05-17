@@ -71,7 +71,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const [freeTrialEndsAt, setFreeTrialEndsAt] = useState<string | null>(null);
   const location = useLocation();
   const [trialExpired, setTrialExpired] = useState(false);
+  const [paidExpired, setPaidExpired] = useState(false);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const justLoggedIn = typeof window !== 'undefined' && sessionStorage.getItem('justLoggedIn') === 'true';
 
   useEffect(() => {
     const timer = setTimeout(() => setMinTimeElapsed(true), 300);
@@ -97,7 +99,6 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           .single();
         if (!ignore) {
           if (!profile) {
-            // No profile exists: force logout and redirect to login
             await supabase.auth.signOut();
             setPlan('deleted');
             setFreeTrialEndsAt(null);
@@ -107,11 +108,24 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
             setPlan(profile.plan ?? 'no');
             setFreeTrialEndsAt(profile.free_trial_ends_at ?? null);
             setLoading(false);
-            // Check for expired trial
+            // Check for expired trial or plan
             if (profile.plan === 'free' && profile.free_trial_ends_at && new Date() > new Date(profile.free_trial_ends_at)) {
               setTrialExpired(true);
+              setPaidExpired(false);
+            } else if ((profile.plan === 'starter' || profile.plan === 'pro') && profile.free_trial_ends_at) {
+              // Paid plan: block after 30 days from free_trial_ends_at
+              const paidEnd = new Date(profile.free_trial_ends_at);
+              paidEnd.setDate(paidEnd.getDate() + 23); // 7+23=30 days
+              if (new Date() > paidEnd) {
+                setPaidExpired(true);
+                setTrialExpired(false);
+              } else {
+                setPaidExpired(false);
+                setTrialExpired(false);
+              }
             } else {
               setTrialExpired(false);
+              setPaidExpired(false);
             }
           }
         }
@@ -124,7 +138,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return () => { ignore = true; };
   }, []);
 
-  if (loading || !minTimeElapsed) return (
+  if ((loading || !minTimeElapsed) && !justLoggedIn) return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-neutral-100 to-blue-50">
       <Loader />
     </div>
@@ -138,6 +152,52 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
       {children}
       <TrialEndedOverlay />
     </>;
+  }
+  // If paid plan expired, show overlay
+  if ((plan === 'starter' || plan === 'pro') && paidExpired) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 9999,
+        backdropFilter: 'blur(8px)',
+        background: 'rgba(255,255,255,0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.95)',
+          borderRadius: '1.5rem',
+          boxShadow: '0 4px 32px rgba(0,0,0,0.10)',
+          padding: '3rem 2.5rem',
+          textAlign: 'center',
+          maxWidth: 400,
+        }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '1rem', color: '#111' }}>Plan Expired</h2>
+          <p style={{ color: '#444', fontSize: '1.1rem', marginBottom: '2rem' }}>
+            Your {plan} plan has expired after 30 days.<br />Please renew your subscription to continue using AgentOS.
+          </p>
+          <a href="/pricing" style={{
+            display: 'inline-block',
+            background: '#111',
+            color: '#fff',
+            borderRadius: '0.75rem',
+            padding: '0.75rem 2rem',
+            fontWeight: 700,
+            fontSize: '1rem',
+            textDecoration: 'none',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}>Go to Pricing</a>
+        </div>
+      </div>
+    );
+  }
+  if (justLoggedIn) {
+    sessionStorage.removeItem('justLoggedIn');
   }
   return <>{children}</>;
 }
