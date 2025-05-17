@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '../lib/supabaseClient';
+import Loader from '@/components/ui/Loader';
 
 const EyeIcon = ({ open }: { open: boolean }) => (
   open ? (
@@ -63,6 +64,8 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [notMember, setNotMember] = useState(false);
+  const [showLoginLoader, setShowLoginLoader] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,9 +79,7 @@ const LoginPage: React.FC = () => {
         result = await supabase.auth.signInWithPassword({ email, password });
       } else {
         result = await supabase.auth.signUp({ email, password });
-        // Profile creation and free trial are now handled by a Supabase trigger
         if (result.data?.user) {
-          // If user is not confirmed, redirect to confirm email page
           if (!result.data.user.confirmed_at) {
             navigate('/confirm-email');
             setLoading(false);
@@ -89,7 +90,6 @@ const LoginPage: React.FC = () => {
       if (result.error) {
         setError(result.error.message);
       } else {
-        // Check if user has a plan in profiles
         const user = result.data?.user || (await supabase.auth.getUser()).data.user;
         if (user) {
           sessionStorage.setItem('userId', user.id);
@@ -98,11 +98,18 @@ const LoginPage: React.FC = () => {
             .select('plan')
             .eq('id', user.id)
             .single();
-          if (profile && profile.plan && profile.plan !== 'no') {
-            navigate('/'); // Redirect to main app
-          } else {
-            navigate('/pricing'); // Redirect to pricing if plan is 'no'
-          }
+          setShowLoginLoader(true);
+          setTimeout(() => {
+            setFadeOut(true);
+            setTimeout(() => {
+              if (profile && profile.plan && profile.plan !== 'no') {
+                navigate('/');
+              } else {
+                navigate('/pricing');
+              }
+            }, 600);
+          }, 3000);
+          return;
         } else {
           setNotMember(true);
         }
@@ -113,6 +120,14 @@ const LoginPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (showLoginLoader) {
+    return (
+      <div className={`fixed inset-0 z-50 flex items-center justify-center bg-white transition-opacity duration-700 ${fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-300">
