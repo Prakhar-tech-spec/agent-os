@@ -95,6 +95,7 @@ const SchedulePage = () => {
         setFormError({ title: 'Failed to update schedule. Please try again.' });
         return;
       }
+      toast({ title: 'Schedule updated', variant: 'default' });
     } else {
       // Insert new schedule
       const { error } = await supabase.from('schedules').insert([
@@ -116,6 +117,7 @@ const SchedulePage = () => {
         setFormError({ title: 'Failed to add schedule. Please try again.' });
         return;
       }
+      toast({ title: 'Schedule added', variant: 'default' });
     }
     setShowModal(false);
     setEditingId(null);
@@ -190,6 +192,7 @@ const SchedulePage = () => {
       setDeleteTargetId(null);
       if (!error) {
         fetchSchedules();
+        toast({ title: 'Schedule deleted', variant: 'destructive' });
       } else {
         alert('Failed to delete schedule.');
       }

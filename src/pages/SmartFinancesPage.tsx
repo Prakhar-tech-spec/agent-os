@@ -170,6 +170,7 @@ export default function SmartFinancesPage() {
       setExpenseInput({ category: "", amount: "", date: todayStr });
       setExpenseTag("");
       closeExpenseModal();
+      toast({ title: 'Expense added', variant: 'default' });
     }
   };
 
@@ -205,6 +206,7 @@ export default function SmartFinancesPage() {
       }, ...prev]);
       setNewClosing({ client: "", address: "", date: todayStr, commission: "", status: "Upcoming" });
       closeClosingModal();
+      toast({ title: 'Closing added', variant: 'default' });
     }
   };
 
@@ -247,6 +249,7 @@ export default function SmartFinancesPage() {
         setGoals({ monthly: freshGoals.monthly, quarterly: freshGoals.quarterly, yearly: freshGoals.yearly });
         setGoalsId(freshGoals.id);
       }
+      toast({ title: 'Goals updated', variant: 'default' });
     }
     setGoalsLoading(false);
   };
@@ -272,6 +275,7 @@ export default function SmartFinancesPage() {
       ]);
       setNewReminder({ label: "", due: todayStr });
       closeReminderModal();
+      toast({ title: 'Reminder added', variant: 'default' });
     }
   };
 
@@ -340,6 +344,7 @@ export default function SmartFinancesPage() {
     await supabase.from('finances').delete().eq('id', pendingDelete.id);
     setDeleteModalOpen(false);
     setPendingDelete(null);
+    toast({ title: 'Item deleted', variant: 'destructive' });
   };
   const askDelete = (id: string, type: 'closing' | 'expense' | 'reminder') => {
     setPendingDelete({ id, type });

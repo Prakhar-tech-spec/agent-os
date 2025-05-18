@@ -126,6 +126,7 @@ const AIAssistantPage = () => {
       await supabase.from('ai_messages').insert([{ user_id: user.id, message: msg, created_at: new Date().toISOString() }]);
       setMessageCount(c => c + 1);
     }
+    toast({ title: 'Message sent', variant: 'default' });
   };
 
   return (

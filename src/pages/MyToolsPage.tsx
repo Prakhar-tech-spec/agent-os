@@ -199,6 +199,7 @@ const MyToolsPage = () => {
       setShowModal(false);
       setForm({ name: "", url: "", description: "", tags: "", pinned: false, icon: "", iconFile: null });
       setFormError({});
+      toast({ title: 'Tool added', variant: 'default' });
     }
   };
 
@@ -221,6 +222,7 @@ const MyToolsPage = () => {
       return;
     }
     setTools(tools.filter(tool => tool.id !== pendingDeleteId));
+    toast({ title: 'Tool deleted', variant: 'destructive' });
   };
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -289,6 +291,7 @@ const MyToolsPage = () => {
     }
     setTools(tools.map(t => t.id === editForm.id ? { ...t, ...updatedTool, icon: iconUrl, tags: updatedTool.tags } : t));
     setEditModalOpen(false);
+    toast({ title: 'Tool updated', variant: 'default' });
   };
 
   const { plan } = usePlan();

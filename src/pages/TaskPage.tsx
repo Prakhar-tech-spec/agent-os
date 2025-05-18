@@ -95,7 +95,7 @@ const TaskPage = () => {
   };
 
   // Delete handler
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     setConfirmDeleteId(id);
     setShowDeleteModal(true);
   };
@@ -104,14 +104,10 @@ const TaskPage = () => {
     if (confirmDeleteId) {
       await supabase.from('tasks').delete().eq('id', confirmDeleteId);
       fetchTasks();
+      toast({ title: 'Task deleted', variant: 'destructive' });
       setConfirmDeleteId(null);
       setShowDeleteModal(false);
     }
-  };
-
-  const cancelDelete = () => {
-    setConfirmDeleteId(null);
-    setShowDeleteModal(false);
   };
 
   // Helper to count tasks for the current month
@@ -159,6 +155,7 @@ const TaskPage = () => {
       if (error) {
         alert('Failed to update task: ' + error.message);
       }
+      toast({ title: 'Task updated', variant: 'default' });
     } else {
       // Add
       const { error } = await supabase.from('tasks').insert([
@@ -177,6 +174,7 @@ const TaskPage = () => {
       if (error) {
         alert('Failed to add task: ' + error.message);
       }
+      toast({ title: 'Task added', variant: 'default' });
     }
     setForm({ name: '', assignees: '', project: '', dueDate: '', priority: '', tags: '', status: 'Assigned', completed: false });
     setFormErrors({ name: '', project: '', dueDate: '', priority: '', status: '' });
@@ -510,13 +508,6 @@ const TaskPage = () => {
             <button
               type="button"
               className="w-full bg-black text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-neutral-800 transition border-none"
-              onClick={cancelDelete}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="w-full bg-red-600 text-white rounded-2xl py-2 font-bold text-lg mt-2 shadow hover:bg-red-700 transition border-none"
               onClick={confirmDelete}
             >
               Delete
