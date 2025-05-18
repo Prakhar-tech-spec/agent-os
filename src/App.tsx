@@ -18,6 +18,7 @@ import ConfirmEmailPage from "./pages/ConfirmEmailPage";
 import { Button } from "@/components/ui/button";
 import SettingsPage from "./pages/SettingsPage";
 import Loader from "@/components/ui/Loader";
+import PaidPricingPage from './pages/PaidPricingPage';
 
 const queryClient = new QueryClient();
 
@@ -312,9 +313,7 @@ function PricingPage() {
           <div className="text-4xl font-extrabold mb-1 text-neutral-900">$0</div>
           <div className="text-xs text-neutral-400 mb-4">Per user/month</div>
           <ul className="mb-8 text-neutral-700 text-sm space-y-2 w-full text-left">
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">✓</span> Full access for 7 days</li>
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">✓</span> No credit card required</li>
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">✓</span> Cancel anytime</li>
+            <li>(Everything in Pro for 7 days)</li>
           </ul>
           <Button onClick={handleFreeTrial}>
             Get started for free
@@ -326,30 +325,38 @@ function PricingPage() {
           )}
         </div>
         {/* Starter Plan */}
-        <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 flex flex-col items-center p-8 transition-all">
+        <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 flex flex-col items-center p-8 transition-all min-h-[520px]">
           <h3 className="text-lg font-bold mb-2 text-neutral-800">Starter</h3>
           <div className="text-4xl font-extrabold mb-1 text-neutral-900">${billing === 'annual' ? 32 : 39}<span className="text-base font-medium">/mo</span></div>
           <div className="text-xs text-neutral-400 mb-4">Billed {billing === 'annual' ? 'annually' : 'monthly'}</div>
-          <ul className="mb-8 text-neutral-700 text-sm space-y-2 w-full text-left">
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">✓</span> Access to core features</li>
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">✓</span> Email support</li>
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">✓</span> Basic analytics</li>
+          <ul className="mb-8 text-neutral-700 text-sm space-y-2 w-full text-left list-disc pl-5 flex-1">
+            <li>Up to 50 Schedules & 50 Tasks per month</li>
+            <li>Pin 5 Favorite Tools for quick access</li>
+            <li>1,000 AI Assistant chats monthly</li>
+            <li>Includes Smart Finances & Closing Tracker</li>
+            <li>Get Basic Reports & Email Support</li>
+            <li>Easy upgrade to Pro anytime</li>
           </ul>
-          <button className="w-full border border-neutral-900 text-neutral-900 font-bold py-2 rounded-lg hover:bg-neutral-900 hover:text-white transition">Get Started</button>
+          <div className="flex-1" />
+          <button className="w-full border border-neutral-900 text-neutral-900 font-bold py-2 rounded-lg hover:bg-neutral-900 hover:text-white transition mt-auto">Get Started</button>
         </div>
         {/* Pro Plan */}
-        <div className="relative bg-neutral-900 rounded-2xl shadow-2xl border-2 border-neutral-900 flex flex-col items-center p-8 transition-all scale-105 z-10">
+        <div className="relative bg-neutral-900 rounded-2xl shadow-2xl border-2 border-neutral-900 flex flex-col items-center p-8 transition-all scale-105 z-10 min-h-[520px]">
           <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-neutral-900 text-xs font-bold px-4 py-1 rounded-full shadow uppercase tracking-widest">Popular</span>
           <h3 className="text-lg font-bold mb-2 text-white">Pro</h3>
           <div className="text-4xl font-extrabold mb-1 text-white">${billing === 'annual' ? 49 : 59}<span className="text-base font-medium">/mo</span></div>
           <div className="text-xs text-neutral-300 mb-4">Billed {billing === 'annual' ? 'annually' : 'monthly'}</div>
-          <ul className="mb-8 text-neutral-200 text-sm space-y-2 w-full text-left">
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-white text-neutral-900 flex items-center justify-center text-xs">✓</span> Unlimited access to all features</li>
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-white text-neutral-900 flex items-center justify-center text-xs">✓</span> Priority support</li>
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-white text-neutral-900 flex items-center justify-center text-xs">✓</span> Advanced analytics</li>
-            <li className="flex items-center gap-2"><span className="inline-block w-4 h-4 rounded-full bg-white text-neutral-900 flex items-center justify-center text-xs">✓</span> Team collaboration</li>
+          <ul className="mb-8 text-neutral-200 text-sm space-y-2 w-full text-left list-disc pl-5 flex-1">
+            <li>Unlimited Schedules & Tasks</li>
+            <li>Pin unlimited Tools</li>
+            <li>15,000 AI Assistant chats monthly</li>
+            <li>Advanced Smart Finances & Closings Tracker</li>
+            <li>Full Reports, Priority Support, & Team Collaboration</li>
+            <li>Custom Branding & Automation</li>
+            <li>Downgrade or cancel anytime</li>
           </ul>
-          <button className="w-full bg-white text-neutral-900 font-bold py-2 rounded-lg hover:bg-neutral-800 hover:text-white border border-white transition">Get Started with Pro</button>
+          <div className="flex-1" />
+          <button className="w-full bg-white text-neutral-900 font-bold py-2 rounded-lg hover:bg-neutral-800 hover:text-white border border-white transition mt-auto">Get Started with Pro</button>
         </div>
       </div>
       {trialExpired && (
@@ -439,6 +446,7 @@ const App = () => (
             }
           />
           <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+          <Route path="/paid-pricing" element={<PaidPricingPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

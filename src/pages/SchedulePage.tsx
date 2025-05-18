@@ -4,12 +4,10 @@ import Header from "@/components/Header";
 import { Calendar, ChevronLeft, ChevronRight, Clock, Plus, Search, MoreVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-
-const supabaseUrl = 'https://nfmfejumgxlhftnohefy.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWZlanVtZ3hsaGZ0bm9oZWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NDM1MDEsImV4cCI6MjA2MjMxOTUwMX0.O3Hm1EBTjnUArZmI_Lu12G7wbwHY8EFDsY_O9SBSrUo';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { usePlan } from '@/hooks/usePlan';
+import { toast } from '@/hooks/use-toast';
 
 const SchedulePage = () => {
   const [viewMode, setViewMode] = useState("Timeline");
@@ -47,6 +45,7 @@ const SchedulePage = () => {
   const [menuAnimationState, setMenuAnimationState] = useState<'entering' | 'entered' | 'exiting' | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [user, setUser] = useState(null);
+  const { plan } = usePlan();
 
   // Handle form input
   const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -54,9 +53,21 @@ const SchedulePage = () => {
     setForm(f => ({ ...f, [name]: value }));
   };
 
+  // Helper to count schedules for the current month
+  const schedulesThisMonth = schedules.filter(s => {
+    const d = new Date(s.date);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+
   // Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Plan limit enforcement
+    if (plan === 'starter' && schedulesThisMonth >= 50 && !editingId) {
+      toast({ title: 'Plan limit reached please upgrade' });
+      return;
+    }
     let errors: { title?: string; date?: string; time?: string; duration?: string; purpose?: string } = {};
     if (!form.title.trim()) errors.title = "Title is required";
     if (!form.purpose || !form.purpose.trim()) errors.purpose = "Purpose is required";

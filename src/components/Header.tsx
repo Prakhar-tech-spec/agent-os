@@ -128,6 +128,19 @@ const Header = ({ activeTab }: HeaderProps) => {
                   <span className="text-sm font-bold text-neutral-800">{plan ? PLAN_LABELS[plan] : '...'}</span>
                 </div>
                 <button
+                  onClick={() => {
+                    if (plan === 'free') {
+                      navigate('/paid-pricing');
+                    } else {
+                      navigate('/pricing');
+                    }
+                  }}
+                  className="w-full py-2 rounded-xl bg-black text-white font-semibold hover:bg-neutral-800 transition text-sm shadow-md"
+                  style={{ fontSize: '1rem', fontWeight: 700 }}
+                >
+                  View Pricing
+                </button>
+                <button
                   onClick={handleLogout}
                   className="w-full py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition text-sm"
                 >

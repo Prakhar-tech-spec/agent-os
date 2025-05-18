@@ -6,15 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { employeesData, tasksData } from "@/data/mockData";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import PenLogo from "@/assets/pen-logo.svg";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format } from "date-fns";
-
-const supabaseUrl = 'https://nfmfejumgxlhftnohefy.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWZlanVtZ3hsaGZ0bm9oZWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NDM1MDEsImV4cCI6MjA2MjMxOTUwMX0.O3Hm1EBTjnUArZmI_Lu12G7wbwHY8EFDsY_O9SBSrUo';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { usePlan } from '@/hooks/usePlan';
+import { toast } from '@/hooks/use-toast';
 
 const TaskPage = () => {
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -44,6 +42,7 @@ const TaskPage = () => {
     status: ''
   });
   const [user, setUser] = useState(null);
+  const { plan } = usePlan();
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -115,9 +114,21 @@ const TaskPage = () => {
     setShowDeleteModal(false);
   };
 
+  // Helper to count tasks for the current month
+  const tasksThisMonth = tasks.filter(t => {
+    const d = new Date(t.due_date);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+
   // Update handleSubmit to handle both add and edit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Plan limit enforcement
+    if (plan === 'starter' && tasksThisMonth >= 50 && !editId) {
+      toast({ title: 'Plan limit reached please upgrade' });
+      return;
+    }
     // Validation: required fields
     const errors = {
       name: form.name.trim() ? '' : 'Task name is required.',

@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Plus, Send, Volume2, Copy as CopyIcon } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { usePlan } from '@/hooks/usePlan';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 const quickPrompts = [
   { label: "Property Description", value: "Generate a property description for..." },
@@ -68,12 +71,9 @@ const AIAssistantPage = () => {
   const chatEndRef = useRef(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utterRef = useRef(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-
-  const showToast = useCallback((type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 1800);
-  }, []);
+  const { plan } = usePlan();
+  const [messageCount, setMessageCount] = useState(0);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -81,8 +81,32 @@ const AIAssistantPage = () => {
     }
   }, [messages]);
 
+  useEffect(() => {
+    // Fetch user and message count for this month
+    async function fetchUserAndCount() {
+      const { data } = await supabase.auth.getUser();
+      setUser(data?.user ?? null);
+      if (data?.user) {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const { count } = await supabase
+          .from('ai_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', data.user.id)
+          .gte('created_at', startOfMonth.toISOString());
+        setMessageCount(count || 0);
+      }
+    }
+    fetchUserAndCount();
+  }, []);
+
   const sendMessage = async (msg) => {
     if (!msg.trim()) return;
+    // Plan limit enforcement
+    if (plan === 'starter' && messageCount >= 1000) {
+      toast({ title: 'Plan limit reached please upgrade' });
+      return;
+    }
     setMessages((prev) => [
       ...prev,
       { role: "user", content: msg },
@@ -97,6 +121,11 @@ const AIAssistantPage = () => {
       ];
       return updated;
     });
+    // Log message to ai_messages table
+    if (user) {
+      await supabase.from('ai_messages').insert([{ user_id: user.id, message: msg, created_at: new Date().toISOString() }]);
+      setMessageCount(c => c + 1);
+    }
   };
 
   return (
@@ -263,7 +292,7 @@ const AIAssistantPage = () => {
                                 onClick={async () => {
                                   try {
                                     await navigator.clipboard.writeText(msg.content);
-                                    showToast('success', 'Copied');
+                                    toast({ title: 'Copied' });
                                   } catch (e) {
                                     // fallback for older browsers
                                     try {
@@ -273,9 +302,9 @@ const AIAssistantPage = () => {
                                       textarea.select();
                                       document.execCommand('copy');
                                       document.body.removeChild(textarea);
-                                      showToast('success', 'Copied');
+                                      toast({ title: 'Copied' });
                                     } catch {
-                                      showToast('error', 'Copy Failed');
+                                      toast({ title: 'Copy Failed' });
                                     }
                                   }
                                 }}
@@ -312,18 +341,6 @@ const AIAssistantPage = () => {
             </div>
           </div>
         </div>
-        {/* Toast notification for copy */}
-        {toast && (
-          <div
-            className={`fixed bottom-6 left-6 z-50 px-4 py-2 rounded-lg shadow-lg text-white text-sm font-medium transition-all duration-300
-              ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}
-              animate-fade-in-out
-            `}
-            style={{ minWidth: 90, pointerEvents: 'none', opacity: toast ? 1 : 0 }}
-          >
-            {toast.message}
-          </div>
-        )}
       </div>
     </div>
   );

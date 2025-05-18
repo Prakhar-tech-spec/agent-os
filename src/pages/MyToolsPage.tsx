@@ -3,11 +3,9 @@ import Header from "@/components/Header";
 import { Tool } from "@/data/mockData";
 import { Plus, Search, Filter, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://nfmfejumgxlhftnohefy.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWZlanVtZ3hsaGZ0bm9oZWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NDM1MDEsImV4cCI6MjA2MjMxOTUwMX0.O3Hm1EBTjnUArZmI_Lu12G7wbwHY8EFDsY_O9SBSrUo';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { usePlan } from '@/hooks/usePlan';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 const PRESET_ICONS = [
   { name: 'Google', url: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg' },
@@ -161,9 +159,17 @@ const MyToolsPage = () => {
     setShowIconModal(false);
   };
 
+  // Helper to count pinned tools
+  const pinnedToolsCount = tools.filter(t => t.pinned).length;
+
   // Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Plan limit enforcement for pinning
+    if (plan === 'starter' && form.pinned && pinnedToolsCount >= 5) {
+      toast({ title: 'Plan limit reached please upgrade' });
+      return;
+    }
     let errors: { name?: string; url?: string } = {};
     if (!form.name.trim()) errors.name = "Name is required";
     if (!form.url.trim() || !isValidUrl(form.url.trim())) errors.url = "Valid URL is required";
@@ -252,6 +258,11 @@ const MyToolsPage = () => {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Plan limit enforcement for pinning
+    if (plan === 'starter' && editForm.pinned && !tools.find(t => t.id === editForm.id)?.pinned && pinnedToolsCount >= 5) {
+      toast({ title: 'Plan limit reached please upgrade' });
+      return;
+    }
     let errors: { name?: string; url?: string } = {};
     if (!editForm.name.trim()) errors.name = "Name is required";
     if (!editForm.url.trim() || !isValidUrl(editForm.url.trim())) errors.url = "Valid URL is required";
@@ -279,6 +290,8 @@ const MyToolsPage = () => {
     setTools(tools.map(t => t.id === editForm.id ? { ...t, ...updatedTool, icon: iconUrl, tags: updatedTool.tags } : t));
     setEditModalOpen(false);
   };
+
+  const { plan } = usePlan();
 
   return (
     <div className="relative min-h-screen bg-neutral-100">

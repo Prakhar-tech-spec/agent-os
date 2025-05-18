@@ -247,8 +247,8 @@ const SettingsPage = () => {
                 <label className="text-base font-medium text-neutral-700">Theme:</label>
                 <label className="flex cursor-pointer select-none items-center">
                   <div className="relative">
-                    <input
-                      type="checkbox"
+                <input
+                  type="checkbox"
                       checked={theme === 'dark'}
                       onChange={() => {
                         if (theme !== 'dark') {

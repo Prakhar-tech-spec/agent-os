@@ -10,20 +10,18 @@ import BarChart from "@/components/BarChart";
 import StatRow from "@/components/StatRow";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { usePlan } from '@/hooks/usePlan';
+import { toast } from '@/hooks/use-toast';
 
 // Types
 type Closing = { id?: string; client: string; address: string; date?: string; closing_date?: string; commission: number; status: string };
 type Expense = { id?: string; category: string; amount: number; tag?: string; date?: string; expense_date?: string };
 type Reminder = { id?: string; label: string; due: string };
 const todayStr = new Date().toISOString().slice(0, 10);
-
-const supabaseUrl = 'https://nfmfejumgxlhftnohefy.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWZlanVtZ3hsaGZ0bm9oZWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NDM1MDEsImV4cCI6MjA2MjMxOTUwMX0.O3Hm1EBTjnUArZmI_Lu12G7wbwHY8EFDsY_O9SBSrUo';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function SmartFinancesPage() {
   const [expenseInput, setExpenseInput] = useState({ category: "", amount: "", date: todayStr });
@@ -47,6 +45,8 @@ export default function SmartFinancesPage() {
   const userIdRef = useRef<string | null>(null);
   const [user, setUser] = useState(null);
   const [showResetGoalsModal, setShowResetGoalsModal] = useState(false);
+  const { plan } = usePlan();
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Stable fetchData for real-time
   const fetchData = async () => {
@@ -184,13 +184,13 @@ export default function SmartFinancesPage() {
     if (!newClosing.client || !newClosing.address || !newClosing.date || !newClosing.commission) return;
     const { data, error } = await supabase.from('finances').insert([
       {
-        type: 'closing',
-        client: newClosing.client,
-        address: newClosing.address,
-        closing_date: newClosing.date,
-        commission: Number(newClosing.commission),
-        status: newClosing.status,
-        user_id: user?.id,
+      type: 'closing',
+      client: newClosing.client,
+      address: newClosing.address,
+      closing_date: newClosing.date,
+      commission: Number(newClosing.commission),
+      status: newClosing.status,
+      user_id: user?.id,
       }
     ]).select().single();
     if (!error && data) {
@@ -239,8 +239,8 @@ export default function SmartFinancesPage() {
     if (!error && updatedGoal) {
       setGoals({ monthly: updatedGoal.monthly, quarterly: updatedGoal.quarterly, yearly: updatedGoal.yearly });
       setGoalsId(updatedGoal.id);
-      setNewGoal({ monthly: "", quarterly: "", yearly: "" });
-      setShowGoalModal(false);
+    setNewGoal({ monthly: "", quarterly: "", yearly: "" });
+    setShowGoalModal(false);
       // Fetch the latest goals from Supabase to ensure UI is up to date
       const { data: freshGoals, error: fetchError } = await supabase.from('goals').select('*').eq('user_id', userId).single();
       if (!fetchError && freshGoals) {
@@ -345,6 +345,9 @@ export default function SmartFinancesPage() {
     setPendingDelete({ id, type });
     setDeleteModalOpen(true);
   };
+
+  const handleExport = () => toast({ title: 'Feature coming soon' });
+  const handleAdvancedAnalytics = () => toast({ title: 'Feature coming soon' });
 
   return (
     <div className="relative min-h-screen bg-neutral-100">
@@ -542,7 +545,34 @@ export default function SmartFinancesPage() {
                     ))}
                   </tbody>
                 </Table>
-                <Button className="mt-4">Export Report (PDF)</Button>
+                {plan === 'pro' || plan === 'starter' ? (
+                  <>
+                    <Button className="mt-4" onClick={() => setShowExportModal(true)}>Export Report (PDF)</Button>
+                    <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+                      <DialogContent className="bg-white rounded-3xl w-full max-w-md px-8 py-6 mx-auto border-none">
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Export Options</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-col gap-4">
+                          <Button className="w-full" variant="outline">Basic Data Export</Button>
+                          {plan === 'pro' ? (
+                            <Button className="w-full" variant="default">Advanced Data Export</Button>
+                          ) : (
+                            <Button className="w-full flex items-center justify-center gap-2" variant="default" disabled>
+                              Advanced Data Export
+                              <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-400 text-black text-xs font-bold">Pro</span>
+                            </Button>
+                          )}
+                        </div>
+                        <DialogFooter>
+                          <Button variant="secondary" onClick={() => setShowExportModal(false)}>Cancel</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                ) : (
+                  <Button className="mt-4" disabled onClick={() => toast({ title: 'Plan limit reached please upgrade' })}>Export Report (PDF)</Button>
+                )}
               </Card>
               {/* Reminders & Alerts */}
               <Card className="p-6 border border-neutral-200">
@@ -577,7 +607,7 @@ export default function SmartFinancesPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-neutral-900">Goal Tracking</h2>
               <div className="flex gap-2">
-                <Button onClick={() => setShowGoalModal(true)} className="bg-black text-white rounded-xl font-bold">Set Goals</Button>
+              <Button onClick={() => setShowGoalModal(true)} className="bg-black text-white rounded-xl font-bold">Set Goals</Button>
                 <Button onClick={() => setShowResetGoalsModal(true)} className="bg-red-600 text-white rounded-xl font-bold text-sm px-4 py-2 hover:bg-red-700 transition">Reset</Button>
               </div>
             </div>

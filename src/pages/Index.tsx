@@ -7,12 +7,9 @@ import BarChart from "@/components/BarChart";
 import AttendanceChart from "@/components/AttendanceChart";
 import { ArrowUp, Calendar, Check, Clock, Edit, Eye, MessageSquare, Phone, Plus, Search, Trash, Pencil, X } from "lucide-react";
 import { employeesData, workforceData, satisfactionData, attendanceData } from "@/data/mockData";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const supabaseUrl = 'https://nfmfejumgxlhftnohefy.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbWZlanVtZ3hsaGZ0bm9oZWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NDM1MDEsImV4cCI6MjA2MjMxOTUwMX0.O3Hm1EBTjnUArZmI_Lu12G7wbwHY8EFDsY_O9SBSrUo';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { usePlan } from '@/hooks/usePlan';
 
 const Index = () => {
   const [selectedTab, setSelectedTab] = useState("Attendance");
@@ -35,6 +32,7 @@ const Index = () => {
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [showDeleteNoteModal, setShowDeleteNoteModal] = useState(false);
   const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState(null);
+  const { plan, loading: planLoading } = usePlan();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
@@ -243,10 +241,19 @@ const Index = () => {
                 Your central hub for insights, tasks, and analytics to manage your business efficiently.
               </p>
             </div>
-            <button className="flex items-center bg-black text-white px-5 py-2 rounded-xl space-x-2 shadow-lg font-bold hover:bg-neutral-800 transition">
-              <Plus size={16} />
-              <span>Export PDF</span>
-            </button>
+            {/* Plan Badge */}
+            <div className="flex items-center">
+              {planLoading ? (
+                <span className="px-5 py-2 rounded-xl bg-neutral-200 text-neutral-500 font-semibold text-base">Loading plan...</span>
+              ) : (
+                <span className="px-5 py-2 rounded-xl bg-black text-white font-semibold text-base shadow-md">
+                  {plan === 'pro' && 'Pro User'}
+                  {plan === 'starter' && 'Starter User'}
+                  {plan === 'free' && 'Free User'}
+                  {!plan && 'No Plan'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="w-full max-w-full mx-auto bg-white rounded-3xl p-6">
@@ -459,7 +466,7 @@ const Index = () => {
                       </div>
                     ))
                   )}
-                </div>
+              </div>
                 <Dialog open={showDeleteNoteModal} onOpenChange={setShowDeleteNoteModal}>
                   <DialogContent className="bg-white rounded-3xl w-full max-w-md px-8 py-6 mx-auto border-none">
                     <DialogHeader>
@@ -483,7 +490,7 @@ const Index = () => {
                       >
                         Delete
                       </button>
-                    </div>
+              </div>
                   </DialogContent>
                 </Dialog>
               </div>
