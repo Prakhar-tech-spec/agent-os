@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useUser } from '@/UserContext';
 
 interface HeaderProps {
   activeTab: string;
@@ -20,6 +21,7 @@ const Header = ({ activeTab }: HeaderProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
+  const { user, loading: userLoading } = useUser();
 
   // Fetch current plan on mount
   useEffect(() => {
@@ -115,7 +117,12 @@ const Header = ({ activeTab }: HeaderProps) => {
               ref={buttonRef}
               onClick={() => setMenuOpen((v) => !v)}
             >
-              <img src="/lovable-uploads/7cb844ab-a7c0-4a3a-a3df-ff34e31930e1.png" alt="User" className="w-full h-full object-cover" />
+              <img
+                src={user?.avatar_url || '/lovable-uploads/7cb844ab-a7c0-4a3a-a3df-ff34e31930e1.png'}
+                alt="User"
+                className="w-full h-full object-cover"
+                style={{ opacity: userLoading ? 0.5 : 1 }}
+              />
             </button>
             {menuOpen && (
               <div
@@ -129,11 +136,7 @@ const Header = ({ activeTab }: HeaderProps) => {
                 </div>
                 <button
                   onClick={() => {
-                    if (plan === 'free') {
-                      navigate('/paid-pricing');
-                    } else {
-                      navigate('/pricing');
-                    }
+                    navigate('/paid-pricing');
                   }}
                   className="w-full py-2 rounded-xl bg-black text-white font-semibold hover:bg-neutral-800 transition text-sm shadow-md"
                   style={{ fontSize: '1rem', fontWeight: 700 }}

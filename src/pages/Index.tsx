@@ -10,6 +10,7 @@ import { employeesData, workforceData, satisfactionData, attendanceData } from "
 import { supabase } from '@/lib/supabaseClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePlan } from '@/hooks/usePlan';
+import { useUser } from '@/UserContext';
 
 const Index = () => {
   const [selectedTab, setSelectedTab] = useState("Attendance");
@@ -33,6 +34,7 @@ const Index = () => {
   const [showDeleteNoteModal, setShowDeleteNoteModal] = useState(false);
   const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState(null);
   const { plan, loading: planLoading } = usePlan();
+  const { user: userContext, loading: userLoading } = useUser();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
@@ -243,14 +245,14 @@ const Index = () => {
             </div>
             {/* Plan Badge */}
             <div className="flex items-center">
-              {planLoading ? (
+              {userLoading ? (
                 <span className="px-5 py-2 rounded-xl bg-neutral-200 text-neutral-500 font-semibold text-base">Loading plan...</span>
               ) : (
                 <span className="px-5 py-2 rounded-xl bg-black text-white font-semibold text-base shadow-md">
-                  {plan === 'pro' && 'Pro User'}
-                  {plan === 'starter' && 'Starter User'}
-                  {plan === 'free' && 'Free User'}
-                  {!plan && 'No Plan'}
+                  {userContext?.plan === 'pro' && 'Pro User'}
+                  {userContext?.plan === 'starter' && 'Starter User'}
+                  {userContext?.plan === 'free' && 'Free User'}
+                  {!userContext?.plan && 'No Plan'}
                 </span>
               )}
             </div>

@@ -16,6 +16,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { usePlan } from '@/hooks/usePlan';
 import { toast } from '@/hooks/use-toast';
+import React from 'react';
 
 // Types
 type Closing = { id?: string; client: string; address: string; date?: string; closing_date?: string; commission: number; status: string };
@@ -47,6 +48,17 @@ export default function SmartFinancesPage() {
   const [showResetGoalsModal, setShowResetGoalsModal] = useState(false);
   const { plan } = usePlan();
   const [showExportModal, setShowExportModal] = useState(false);
+  // Search and filter state
+  const [expenseSearch, setExpenseSearch] = useState("");
+  const [showExpenseFilterModal, setShowExpenseFilterModal] = useState(false);
+  const [expenseFilters, setExpenseFilters] = useState({
+    dateFrom: "",
+    dateTo: "",
+    minAmount: "",
+    maxAmount: "",
+    categories: [], // array of strings
+    tags: [], // array of strings
+  });
 
   // Stable fetchData for real-time
   const fetchData = async () => {
@@ -354,6 +366,47 @@ export default function SmartFinancesPage() {
   const handleExport = () => toast({ title: 'Feature coming soon' });
   const handleAdvancedAnalytics = () => toast({ title: 'Feature coming soon' });
 
+  // Helper: get all unique categories and tags from expenses
+  const allCategories = Array.from(new Set(expenseList.map(e => e.category).filter(Boolean)));
+  const allTags = Array.from(new Set(expenseList.map(e => e.tag).filter(Boolean)));
+
+  // Filtering logic
+  const filteredExpenses = expenseList.filter(e => {
+    // Search bar: match category, amount, or tag
+    const search = expenseSearch.toLowerCase();
+    const matchesSearch =
+      e.category?.toLowerCase().includes(search) ||
+      (e.amount?.toString() || "").includes(search) ||
+      (e.tag?.toLowerCase() || "").includes(search);
+    // Date range
+    let matchesDate = true;
+    if (expenseFilters.dateFrom) {
+      matchesDate = matchesDate && e.date >= expenseFilters.dateFrom;
+    }
+    if (expenseFilters.dateTo) {
+      matchesDate = matchesDate && e.date <= expenseFilters.dateTo;
+    }
+    // Min/max amount
+    let matchesAmount = true;
+    if (expenseFilters.minAmount) {
+      matchesAmount = matchesAmount && e.amount >= Number(expenseFilters.minAmount);
+    }
+    if (expenseFilters.maxAmount) {
+      matchesAmount = matchesAmount && e.amount <= Number(expenseFilters.maxAmount);
+    }
+    // Category multi-select
+    let matchesCategory = true;
+    if (expenseFilters.categories.length > 0) {
+      matchesCategory = expenseFilters.categories.includes(e.category);
+    }
+    // Tag multi-select
+    let matchesTag = true;
+    if (expenseFilters.tags.length > 0) {
+      matchesTag = expenseFilters.tags.includes(e.tag);
+    }
+    return matchesSearch && matchesDate && matchesAmount && matchesCategory && matchesTag;
+  });
+
   return (
     <div className="relative min-h-screen bg-neutral-100">
       <div className="relative z-10 min-h-screen px-6 py-4">
@@ -502,7 +555,23 @@ export default function SmartFinancesPage() {
                     setShowExpenseModal(true);
                   }}>Add Expense</Button>
                 </div>
-
+                {/* Search bar and filter button */}
+                <div className="flex gap-2 mb-4">
+                  <Input
+                    placeholder="Search Category, Amount, Tag..."
+                    value={expenseSearch}
+                    onChange={e => setExpenseSearch(e.target.value)}
+                    className="w-full max-w-xs bg-white border border-black text-black placeholder:text-neutral-500"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowExpenseFilterModal(true)}
+                    className="bg-white border border-black text-black hover:bg-neutral-100"
+                  >
+                    Filters
+                  </Button>
+                </div>
+                {/* Expense Table */}
                 <Table>
                   <thead>
                     <tr className="bg-gray-100">
@@ -514,7 +583,7 @@ export default function SmartFinancesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {expenseList.map((e) => (
+                    {filteredExpenses.map((e) => (
                       <tr key={e.id} className="group hover:bg-red-50/30 transition">
                         <td className="px-4 py-2">{e.category}</td>
                         <td className="px-4 py-2">${e.amount.toLocaleString()}</td>
@@ -578,6 +647,83 @@ export default function SmartFinancesPage() {
                 ) : (
                   <Button className="mt-4" disabled onClick={() => toast({ title: 'Plan limit reached please upgrade' })}>Export Report (PDF)</Button>
                 )}
+                {/* Expense Filter Modal */}
+                <Dialog open={showExpenseFilterModal} onOpenChange={setShowExpenseFilterModal}>
+                  <DialogContent className="bg-white rounded-3xl w-full max-w-lg px-8 py-6 mx-auto border-none">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-bold text-neutral-900 mb-4">Expense Filters</DialogTitle>
+                    </DialogHeader>
+                    <form className="space-y-4" onSubmit={e => { e.preventDefault(); setShowExpenseFilterModal(false); }}>
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium mb-1">Date From</label>
+                          <Input type="date" value={expenseFilters.dateFrom} onChange={e => setExpenseFilters(f => ({ ...f, dateFrom: e.target.value }))} />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium mb-1">Date To</label>
+                          <Input type="date" value={expenseFilters.dateTo} onChange={e => setExpenseFilters(f => ({ ...f, dateTo: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium mb-1">Min Amount</label>
+                          <Input type="number" value={expenseFilters.minAmount} onChange={e => setExpenseFilters(f => ({ ...f, minAmount: e.target.value }))} />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium mb-1">Max Amount</label>
+                          <Input type="number" value={expenseFilters.maxAmount} onChange={e => setExpenseFilters(f => ({ ...f, maxAmount: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Categories</label>
+                        <div className="flex flex-wrap gap-2">
+                          {allCategories.length === 0 && <span className="text-xs text-gray-400">No categories yet</span>}
+                          {allCategories.map(cat => (
+                            <button
+                              key={cat}
+                              type="button"
+                              className={`px-3 py-1 rounded-full border text-sm ${expenseFilters.categories.includes(cat) ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300'}`}
+                              onClick={() => setExpenseFilters(f => ({
+                                ...f,
+                                categories: f.categories.includes(cat)
+                                  ? f.categories.filter(c => c !== cat)
+                                  : [...f.categories, cat]
+                              }))}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Tags</label>
+                        <div className="flex flex-wrap gap-2">
+                          {allTags.length === 0 && <span className="text-xs text-gray-400">No tags yet</span>}
+                          {allTags.map(tag => (
+                            <button
+                              key={tag}
+                              type="button"
+                              className={`px-3 py-1 rounded-full border text-sm ${expenseFilters.tags.includes(tag) ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300'}`}
+                              onClick={() => setExpenseFilters(f => ({
+                                ...f,
+                                tags: f.tags.includes(tag)
+                                  ? f.tags.filter(t => t !== tag)
+                                  : [...f.tags, tag]
+                              }))}
+                            >
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button type="button" variant="secondary" onClick={() => setShowExpenseFilterModal(false)}>Close</Button>
+                        <Button type="submit">Apply</Button>
+                        <Button type="button" variant="outline" onClick={() => setExpenseFilters({ dateFrom: '', dateTo: '', minAmount: '', maxAmount: '', categories: [], tags: [] })}>Clear All</Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </Card>
               {/* Reminders & Alerts */}
               <Card className="p-6 border border-neutral-200">

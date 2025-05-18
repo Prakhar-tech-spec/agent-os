@@ -2,12 +2,15 @@ import Header from "@/components/Header";
 import { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
+import { useUser } from '@/UserContext';
 
 const SettingsPage = () => {
+  const { user, setUser, refreshUser } = useUser();
   const [profile, setProfile] = useState({
-    name: "",
-    email: "",
-    avatar: "/lovable-uploads/7cb844ab-a7c0-4a3a-a3df-ff34e31930e1.png",
+    name: user?.name || '',
+    email: user?.email || '',
+    avatar: user?.avatar_url || '/lovable-uploads/7cb844ab-a7c0-4a3a-a3df-ff34e31930e1.png',
   });
   const [theme, setTheme] = useState("light");
   const [oldPassword, setOldPassword] = useState("");
@@ -27,25 +30,14 @@ const SettingsPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch user email and name from Supabase
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user?.email) {
-        setProfile(p => ({ ...p, email: data.user.email }));
-        setUserId(data.user.id);
-        // Fetch name from profiles table
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', data.user.id)
-          .single();
-        if (profileData?.name) {
-          setProfile(p => ({ ...p, name: profileData.name }));
-        }
-      }
-    };
-    fetchUser();
-  }, []);
+    if (user) {
+      setProfile({
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar_url,
+      });
+    }
+  }, [user]);
 
   const handleSave = async () => {
     if (!userId) return;
@@ -141,6 +133,33 @@ const SettingsPage = () => {
     navigate('/login');
   };
 
+  // Avatar upload handler
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !user?.id) return;
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}.${fileExt}`;
+    // Upload to Supabase Storage
+    let { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      console.error('Upload error:', uploadError, 'File path:', filePath);
+      toast({ title: 'Failed to upload image', variant: 'destructive' });
+      return;
+    }
+    // Get public URL
+    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    const avatarUrl = data.publicUrl;
+    // Update profile
+    const { error } = await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id);
+    if (!error) {
+      setProfile(p => ({ ...p, avatar: avatarUrl }));
+      setUser({ ...user, avatar_url: avatarUrl });
+      toast({ title: 'Profile image updated!' });
+    } else {
+      toast({ title: 'Failed to update profile image', variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="relative min-h-screen bg-neutral-100">
       <div className="relative z-10 min-h-screen px-6 py-4">
@@ -152,8 +171,15 @@ const SettingsPage = () => {
           <section className="mb-8">
             <h2 className="text-xl font-bold mb-4 text-neutral-900">Profile</h2>
             <div className="flex items-center gap-6 mb-4">
-              <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden border border-neutral-200">
+              <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden border border-neutral-200 relative">
                 <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
+                  title="Change avatar"
+                />
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Name</label>

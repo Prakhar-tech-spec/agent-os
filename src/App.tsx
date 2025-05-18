@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import SettingsPage from "./pages/SettingsPage";
 import Loader from "@/components/ui/Loader";
 import PaidPricingPage from './pages/PaidPricingPage';
+import { UserProvider } from './UserContext';
 
 const queryClient = new QueryClient();
 
@@ -373,84 +374,84 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Index />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/employees"
-            element={
-              <PrivateRoute>
-                <MyToolsPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/schedule"
-            element={
-              <PrivateRoute>
-                <SchedulePage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/tasks"
-            element={
-              <PrivateRoute>
-                <TaskPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/ai-assistant"
-            element={
-              <PrivateRoute>
-                <AIAssistantPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/payroll"
-            element={<NotFound />}
-          />
-          <Route
-            path="/hiring"
-            element={
-              <PrivateRoute>
-                <HiringPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/smart-finances"
-            element={
-              <PrivateRoute>
-                <SmartFinancesPage />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <PrivateRoute>
-                <SettingsPage />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/confirm-email" element={<ConfirmEmailPage />} />
-          <Route path="/paid-pricing" element={<PaidPricingPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <UserProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Index />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/employees"
+              element={
+                <PrivateRoute>
+                  <MyToolsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/schedule"
+              element={
+                <PrivateRoute>
+                  <SchedulePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/tasks"
+              element={
+                <PrivateRoute>
+                  <TaskPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ai-assistant"
+              element={
+                <PrivateRoute>
+                  <AIAssistantPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/payroll"
+              element={<NotFound />}
+            />
+            <Route
+              path="/hiring"
+              element={
+                <PrivateRoute>
+                  <HiringPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/smart-finances"
+              element={
+                <PrivateRoute>
+                  <SmartFinancesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PrivateRoute>
+                  <SettingsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+            <Route path="/paid-pricing" element={<PaidPricingPage />} />
+          </Routes>
+        </BrowserRouter>
+      </UserProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -19,9 +19,6 @@ const PaidPricingPage: React.FC = () => {
           .single();
         if (profile) {
           setPlan(profile.plan);
-          if (['pro', 'starter'].includes(profile.plan)) {
-            navigate('/');
-          }
         }
       }
     }

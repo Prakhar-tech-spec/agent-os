@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '../lib/supabaseClient';
 import Loader from '@/components/ui/Loader';
+import logo from '@/assets/logo.png';
 
 const EyeIcon = ({ open }: { open: boolean }) => (
   open ? (
@@ -131,85 +132,90 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-300">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white shadow-2xl rounded-2xl p-10 w-full max-w-md flex flex-col gap-7 border border-neutral-200"
-      >
-        <h2 className="text-3xl font-extrabold text-center text-neutral-900 mb-2 tracking-tight">
-          {mode === 'login' ? 'Sign In' : 'Sign Up'}
-        </h2>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-neutral-700">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            autoFocus
-            placeholder="you@email.com"
-            className="bg-neutral-100 border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900"
-          />
-        </div>
-        <div className="flex flex-col gap-2 relative">
-          <Label htmlFor="password" className="text-neutral-700">Password</Label>
-          <div className="relative">
+      <div className="flex flex-col items-center w-full">
+        <img src={logo} alt="AgentOS Logo" className="w-24 h-24 mb-1 drop-shadow-xl" style={{objectFit: 'contain'}} />
+        <h1 className="text-5xl font-extrabold text-neutral-900 mb-2 tracking-tight text-center" style={{letterSpacing: '-0.04em'}}>AgentOS</h1>
+        <p className="text-lg text-neutral-500 mb-8 text-center max-w-md">Your AI-powered business dashboard</p>
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white/90 shadow-2xl rounded-3xl p-10 w-full max-w-md flex flex-col gap-7 border border-neutral-200 backdrop-blur-md"
+        >
+          <h2 className="text-3xl font-bold text-center text-neutral-900 mb-2 tracking-tight">
+            {mode === 'login' ? 'Sign In' : 'Sign Up'}
+          </h2>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="email" className="text-neutral-700">Email</Label>
             <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               required
-              placeholder="••••••••"
-              className="bg-neutral-100 border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 pr-10"
+              autoFocus
+              placeholder="you@email.com"
+              className="bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900"
             />
-            <button
-              type="button"
-              tabIndex={-1}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-transparent border-none outline-none cursor-pointer flex items-center justify-center"
-              style={{ height: 24, width: 24 }}
-              onClick={() => setShowPassword((v) => !v)}
-            >
-              <EyeIcon open={showPassword} />
-            </button>
           </div>
-        </div>
-        {error && <div className="text-neutral-900 bg-neutral-200 border border-neutral-400 rounded px-3 py-2 text-sm text-center font-semibold">{error}</div>}
-        {notMember && (
-          <div className="text-neutral-900 bg-neutral-200 border border-neutral-400 rounded px-3 py-2 text-sm text-center font-semibold mb-2">
-            You are not a member. Please subscribe.
-          </div>
-        )}
-        <Button type="submit" className="w-full bg-neutral-900 text-white font-bold py-2 rounded-lg hover:bg-neutral-800 transition" disabled={loading}>
-          {loading ? (mode === 'login' ? 'Signing In...' : 'Signing Up...') : (mode === 'login' ? 'Sign In' : 'Sign Up')}
-        </Button>
-        <div className="text-center text-sm text-neutral-500">
-          {mode === 'login' ? (
-            <>
-              Don&apos;t have an account?{' '}
+          <div className="flex flex-col gap-2 relative">
+            <Label htmlFor="password" className="text-neutral-700">Password</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="bg-white border border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 pr-10"
+              />
               <button
                 type="button"
-                className="text-neutral-900 font-semibold hover:underline"
-                onClick={() => setMode('signup')}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-transparent border-none outline-none cursor-pointer flex items-center justify-center"
+                style={{ height: 24, width: 24 }}
+                onClick={() => setShowPassword((v) => !v)}
               >
-                Sign Up
+                <EyeIcon open={showPassword} />
               </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <button
-                type="button"
-                className="text-neutral-900 font-semibold hover:underline"
-                onClick={() => setMode('login')}
-              >
-                Sign In
-              </button>
-            </>
+            </div>
+          </div>
+          {error && <div className="text-neutral-900 bg-neutral-200 border border-neutral-400 rounded px-3 py-2 text-sm text-center font-semibold">{error}</div>}
+          {notMember && (
+            <div className="text-neutral-900 bg-neutral-200 border border-neutral-400 rounded px-3 py-2 text-sm text-center font-semibold mb-2">
+              You are not a member. Please subscribe.
+            </div>
           )}
-        </div>
-      </form>
+          <Button type="submit" className="w-full bg-neutral-900 text-white font-bold py-2 rounded-lg hover:bg-neutral-800 transition shadow-md" disabled={loading}>
+            {loading ? (mode === 'login' ? 'Signing In...' : 'Signing Up...') : (mode === 'login' ? 'Sign In' : 'Sign Up')}
+          </Button>
+          <div className="text-center text-sm text-neutral-500">
+            {mode === 'login' ? (
+              <>
+                Don&apos;t have an account?{' '}
+                <button
+                  type="button"
+                  className="text-neutral-900 font-semibold hover:underline"
+                  onClick={() => setMode('signup')}
+                >
+                  Sign Up
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  className="text-neutral-900 font-semibold hover:underline"
+                  onClick={() => setMode('login')}
+                >
+                  Sign In
+                </button>
+              </>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
