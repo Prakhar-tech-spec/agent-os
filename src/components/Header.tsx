@@ -174,10 +174,10 @@ const Header = ({ activeTab }: HeaderProps) => {
       <div className="flex items-center space-x-4">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search"
-            className="w-64 rounded-full bg-neutral-50 pl-10 pr-4 py-2 text-sm border border-neutral-200"
+          <input 
+            type="text" 
+            placeholder="Search" 
+            className="w-64 rounded-full bg-neutral-50 pl-10 pr-4 py-2 text-sm border border-neutral-200" 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onFocus={() => searchQuery && setShowSuggestions(true)}

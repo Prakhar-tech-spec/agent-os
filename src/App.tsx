@@ -375,82 +375,82 @@ const App = () => (
       <Toaster />
       <Sonner />
       <UserProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <Index />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/employees"
-              element={
-                <PrivateRoute>
-                  <MyToolsPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/schedule"
-              element={
-                <PrivateRoute>
-                  <SchedulePage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/tasks"
-              element={
-                <PrivateRoute>
-                  <TaskPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/ai-assistant"
-              element={
-                <PrivateRoute>
-                  <AIAssistantPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/payroll"
-              element={<NotFound />}
-            />
-            <Route
-              path="/hiring"
-              element={
-                <PrivateRoute>
-                  <HiringPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/smart-finances"
-              element={
-                <PrivateRoute>
-                  <SmartFinancesPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <PrivateRoute>
-                  <SettingsPage />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Index />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/employees"
+            element={
+              <PrivateRoute>
+                <MyToolsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/schedule"
+            element={
+              <PrivateRoute>
+                <SchedulePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <PrivateRoute>
+                <TaskPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ai-assistant"
+            element={
+              <PrivateRoute>
+                <AIAssistantPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/payroll"
+            element={<NotFound />}
+          />
+          <Route
+            path="/hiring"
+            element={
+              <PrivateRoute>
+                <HiringPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/smart-finances"
+            element={
+              <PrivateRoute>
+                <SmartFinancesPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <PrivateRoute>
+                <SettingsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/confirm-email" element={<ConfirmEmailPage />} />
             <Route path="/paid-pricing" element={<PaidPricingPage />} />
-          </Routes>
-        </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
       </UserProvider>
     </TooltipProvider>
   </QueryClientProvider>

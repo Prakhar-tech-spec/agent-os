@@ -79,7 +79,7 @@ const LoginPage: React.FC = () => {
       if (mode === 'login') {
         result = await supabase.auth.signInWithPassword({ email, password });
       } else {
-        result = await supabase.auth.signUp({ email, password });
+        result = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: 'https://agent-os.netlify.app/confirm-email' } });
         if (result.data?.user) {
           if (!result.data.user.confirmed_at) {
             navigate('/confirm-email');
